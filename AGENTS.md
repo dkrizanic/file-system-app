@@ -324,6 +324,7 @@ additional BMAD modules without asking.
 | D14 | Test-database fallback applied: compose-managed throwaway `db-test` (root `compose.test.yaml`, `test` profile, tmpfs, host port 5433) replaces Testcontainers | No stable, maintained Testcontainers client for PHP could be verified; the §6 fallback applies. Trade-off stated in the README | 2026-10-01 |
 | D15 | Cascade delete rides the `parent_id` FK `ON DELETE CASCADE` inside the service transaction; spine AD-5 amended (same id) | PostgreSQL removes the subtree atomically in one statement; recursive CTEs remain for scoped search and ancestor paths | 2026-10-01 |
 | D16 | CI on GitHub Actions is out of scope — nothing lives under `.github/`; the local gates (PHPStan, PHP-CS-Fixer, the test suite) are the whole enforcement layer | User decision (2026-10-01); supersedes the CI part of D7. AGENTS.md §8 promises no CI | 2026-10-01 |
+| D17 | Rename is the single beyond-brief feature — sanctioned by explicit user decision (PRD FR-4); everything else stays inside the task brief | PRD §4.3 records the sanction (prd-file-system-app.md:145); the README states it up front so a reviewer never reads rename as scope creep | 2026-10-01 |
 
 ### Project status
 
@@ -337,7 +338,7 @@ additional BMAD modules without asking.
 - [x] React app: structure, API layer, error boundary
 - [x] Functional suite (compose `db-test`, real PostgreSQL) + unit tests — delivered with the domain model; grows with each API unit
 - [x] Tooling: PHPStan and PHP-CS-Fixer as local gates — no CI by decision (D16)
-- [ ] README polish: assumptions, trade-offs, improvements
+- [x] README polish: assumptions, trade-offs, improvements
 
 ## 12. Task brief (verbatim)
 

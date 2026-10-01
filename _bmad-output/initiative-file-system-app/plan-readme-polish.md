@@ -3,7 +3,7 @@ title: 'README polish: full §10 contract, every claim verified'
 type: 'chore'
 ticket: ''
 created: '2026-10-01'
-status: 'ready-for-dev'
+status: 'built'
 route: 'full'
 route_source: 'auto'
 review: ''
@@ -41,10 +41,10 @@ context: ['{project-root}/AGENTS.md', '{project-root}/_bmad-output/initiative-fi
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `git` -- create `docs/readme-polish` off the tip the orchestrator provides -- one branch per work unit (D13)
-- [ ] `AGENTS.md` -- append D16 (no CI pipeline: quality gates run locally, README states it) and D17 (rename is the single beyond-brief feature, sanctioned per PRD FR-4, prd-file-system-app.md:145) -- the goal mandates both trade-off statements; §11.5 requires the decisions behind them logged
-- [ ] `README.md` -- rewrite to the eight §10 sections against the running system: boot `docker compose up -d --build`, dry-run every planned command, curl all 8 AD-6 routes (plus one 400 and one 409 for the envelope), run the suite on `db-test`, capture real outputs, then write -- claims must match captured output, not memory
-- [ ] `AGENTS.md` -- Project status: verify each open box against the tree, tick only the true ones; expected true: API endpoints + validation, React app, README polish; expected false: Tooling & CI (no pipeline, D16)
+- [x] `git` -- create `docs/readme-polish` off the tip the orchestrator provides -- one branch per work unit (D13)
+- [x] `AGENTS.md` -- append D16 (no CI pipeline: quality gates run locally, README states it) and D17 (rename is the single beyond-brief feature, sanctioned per PRD FR-4, prd-file-system-app.md:145) -- the goal mandates both trade-off statements; §11.5 requires the decisions behind them logged
+- [x] `README.md` -- rewrite to the eight §10 sections against the running system: boot `docker compose up -d --build`, dry-run every planned command, curl all 8 AD-6 routes (plus one 400 and one 409 for the envelope), run the suite on `db-test`, capture real outputs, then write -- claims must match captured output, not memory
+- [x] `AGENTS.md` -- Project status: verify each open box against the tree, tick only the true ones; expected true: API endpoints + validation, React app, README polish; expected false: Tooling & CI (no pipeline, D16)
 
 **Acceptance Criteria:**
 - Given the finished README, when its How-to-run block is pasted into a fresh shell, then every command succeeds with the output the README describes.
@@ -56,6 +56,11 @@ context: ['{project-root}/AGENTS.md', '{project-root}/_bmad-output/initiative-fi
 ## Implementation Notes
 
 ## Plan Change Log
+
+- 2026-10-01 (implementation): Branch named `feature/readme-polish` per the orchestrator's ask; the plan's `docs/readme-polish` name was superseded. Both AGENTS.md and README.md landed in the one docs commit as the plan's Always clause requires.
+- 2026-10-01 (implementation): The task "append D16 and D17" became D17 only — D16 was already in AGENTS.md (appended by commit 76ced96 before this unit ran), and the Tooling status box was already reworded to "local gates — no CI by decision (D16)" and ticked, matching the pinned expectation's "verification wins" rule.
+- 2026-10-01 (implementation): The plan's premise was stale: the README no longer said "There is no API and no frontend yet" — earlier units had already carried it to the eight §10 sections per AGENTS §10. The unit's real work became run-first verification of every claim (every command, all 8 routes, 400/409 envelopes, the 108-test suite on `db-test`, PHPStan, cs-check, npm ci/build/dev, and a fresh-volume boot) plus the still-missing mandated pieces: the rename-sanction statement, the move/trash/CI-pipeline/FrankenPHP-worker/Redis/Symfony-8.2-LTS improvement items, and D17.
+- 2026-10-01 (implementation): Three README claims failed against the running system and were rewritten to observed behavior; no application code was touched, per the Never clause. (1) "`limit` … caps at 100" — the API validates limit 1–100 and answers 400 outside the range; it does not clamp. (2) "listing is the page query plus its count" — the assertion pins a constant three statements (ListItemsEndpointTest.php:172). (3) The "non-integer limit/offset yields a 400 with an empty `field`" limitation was removed — the current system names the field (`limit` / `offset` verified by curl).
 
 ## Review Triage Log
 

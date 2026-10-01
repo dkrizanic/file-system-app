@@ -3,23 +3,34 @@
 A browser-based file system — folders and files in a tree, similar in spirit
 to Dropbox's web interface — built as a PHP Developer interview take-home.
 
-**Current state:** the backend is a Symfony 8.1 application running in debug
-mode against PostgreSQL 18 under docker compose, with its domain data layer
-and the full JSON API in place: the `item` table (folders and files in one
-tree), the `ItemRepository` behind `src/Contract/ItemRepositoryInterface`,
-the eight API endpoints over `App\Contract\ItemServiceInterface` with
-validation and a uniform error envelope, and a real PHPUnit suite (unit +
-functional, including HTTP-level tests) against a throwaway PostgreSQL
-container. The React SPA and the nginx origin are in place too: folder
-browsing, create, rename, delete, exact search and typeahead suggestions,
-talking to that API on one origin. The local quality gates — PHPStan at
-level max and PHP-CS-Fixer — run inside the app container; CI is
-deliberately out of scope (see Known limitations). The final README polish
-is the next unit.
+**Status:** the PRD's feature set is delivered end-to-end. A Symfony 8.1
+backend (debug mode, FrankenPHP, PostgreSQL 18) serves a JSON API; a React 19
++ TypeScript SPA browses and edits the tree through it on one origin; docker
+compose boots the whole stack with one command; the PHPUnit suite (108 tests)
+runs against a real second PostgreSQL and is green, as are PHPStan (level
+max) and PHP-CS-Fixer. There is no CI pipeline (D16) — the quality gates run
+locally before every push, and this README was written by running every
+command and request it shows. Known trade-offs are listed under [Known
+limitations & trade-offs](#known-limitations--trade-offs).
 
 ## What it does
 
-The data layer and API (previous units):
+For the user:
+
+- Create folders and subfolders, create files (a file is just its name).
+- Browse: a folder's contents, folders first, paginated; breadcrumbs from the
+  item's ancestor path.
+- Rename any folder or file in place. Rename is the single feature beyond the
+  task brief — sanctioned by explicit user decision and recorded in the PRD
+  (FR-4); see [Known limitations](#known-limitations--trade-offs).
+- Delete a file, or delete a folder and its whole subtree — with an explicit
+  cascade warning before a folder delete.
+- Search files by exact name, scoped to a folder's subtree or across all
+  files; matching is case-insensitive (`INVOICES` finds `invoices`).
+- Typeahead in the search box: the top 10 files whose name starts with the
+  typed prefix, each with its location; picking one opens its folder.
+
+How it is built:
 
 - One `item` table holds the whole hierarchy (`folder` | `file` discriminator,
   adjacency list via `parent_id`, foreign key `ON DELETE CASCADE`), created by
@@ -44,17 +55,9 @@ The data layer and API (previous units):
   `1a0ef9c6-0000-7000-8000-000000000000` (`App\Entity\Item::ROOT_ID`). A
   partial unique index guarantees it stays the only parent-less item; the root
   cannot be renamed or deleted.
-
-The frontend (this unit):
-
-- A React 19 + TypeScript (strict) SPA built with Vite: folder listing
-  (folders first, paginated), breadcrumbs from the item's `parentPath`,
-  create folder/file, rename, delete with an explicit cascade warning,
-  exact-name search with a current-folder/everywhere scope toggle, and a
-  debounced typeahead whose suggestions jump to the file's parent folder.
-- Routing has zero dependencies: the open folder id lives in the URL hash —
-  `#/` is the root, `#/folders/{id}` deep-links anywhere. Search results are
-  view state.
+- A React 19 + TypeScript (strict) SPA built with Vite. Routing has zero
+  dependencies: the open folder id lives in the URL hash — `#/` is the root,
+  `#/folders/{id}` deep-links anywhere. Search results are view state.
 - All HTTP goes through one typed API layer (`frontend/src/api/client.ts`),
   one function per endpoint, which parses the backend's error envelope into a
   single `ApiError` carrying `code`, `message` and the 400/409 field
@@ -80,10 +83,12 @@ pins `config.platform.php: 8.5.0`), Node 24 and nginx 1.30.
 ## How to run
 
 ```bash
-docker compose up -d --build
+docker compose up -d --build --wait
 ```
 
-Then create the schema and check the stack is alive:
+`--wait` holds the command until every service has passed its healthcheck,
+so the stack is genuinely serving when the prompt comes back. Then create
+the schema and check the stack is alive:
 
 ```bash
 docker compose exec app php bin/console doctrine:migrations:migrate -n
@@ -91,24 +96,29 @@ docker compose ps                                   # app, db and frontend healt
 ```
 
 Open **http://localhost:8080** — nginx serves the SPA and proxies `/api` to
-the app on one origin. The `dbal` sanity checks from earlier units still work:
+the app on one origin. Sanity checks, with real output:
 
 ```bash
-docker compose exec app php bin/console --version   # Symfony v8.1.x (env: dev, debug: true)
+docker compose exec app php bin/console --version
+# Symfony v8.1.8 (env: dev, debug: true)
+
 docker compose exec app php bin/console dbal:run-sql "SELECT id, parent_id, name FROM item"
+# one row: 1a0ef9c6-0000-7000-8000-000000000000 | (null) | Root
+
 curl -si -X POST http://localhost:8080/api/folders -H "Content-Type: application/json" -d '{"name":"Docs"}'
-# HTTP/1.1 201 Created ... Location: /api/items/<uuid> {"id":"...","type":"folder","name":"Docs","parentId":"1a0ef9c6-..."}
-curl -s "http://localhost:8080/api/folders/1a0ef9c6-0000-7000-8000-000000000000/items"
-# {"items":[...],"total":1,"limit":50,"offset":0}
+# HTTP/1.1 201 Created ... Location: /api/items/01a0f892-c6f8-7345-a972-2fd61cc98bfb
+# {"id":"01a0f892-c6f8-7345-a972-2fd61cc98bfb","type":"folder","name":"Docs","parentId":"1a0ef9c6-..."}
 ```
 
-The `dbal:run-sql` line should show the seeded root row
-(`1a0ef9c6-…-000000000000`, no parent). The migration is idempotent: running
-it again is a no-op. The app container runs FrankenPHP serving Symfony in
-`APP_ENV=dev`, `APP_DEBUG=1`; PostgreSQL data lives in the `db_data` named
-volume. The API answers on `http://localhost:8080` through nginx — host port
-8080 belongs to nginx (the entry point); the dev override additionally
-exposes the app itself on 8081 for direct reachability.
+The migration is idempotent: running it again is a no-op. The app container
+runs FrankenPHP serving Symfony in `APP_ENV=dev`, `APP_DEBUG=1`; PostgreSQL
+data lives in the `db_data` named volume. The API answers on
+`http://localhost:8080` through nginx — host port 8080 belongs to nginx (the
+entry point); the dev override additionally exposes the app itself on 8081
+for direct reachability. `vendor/` and `node_modules/` live in named volumes;
+a fresh volume is seeded from the image's own `composer install` output on
+first boot, so a clean checkout really does come up from the one command
+above (verified by deleting the volume and booting).
 
 Everyday commands:
 
@@ -135,11 +145,11 @@ docker compose run --rm node npm run build
 ```
 
 The Vite dev server proxies `/api` into the compose network
-(`API_PROXY_TARGET=http://app:80` set by the override). `node_modules/` lives
-in a named volume seeded by `npm ci`, so the Windows/OneDrive host filesystem
-never sees it. `frontend/vite.config.ts` defaults the proxy to
-`http://localhost:8081`, so running Vite on a host against the published dev
-port works too.
+(`API_PROXY_TARGET=http://app:80` set by the override) — the page and the API
+both answer on `http://localhost:5173`. `node_modules/` lives in a named
+volume seeded by `npm ci`, so the Windows/OneDrive host filesystem never sees
+it. `frontend/vite.config.ts` defaults the proxy to `http://localhost:8081`,
+so running Vite on a host against the published dev port works too.
 
 ## How to test
 
@@ -151,8 +161,9 @@ or an in-memory substitute.
 # start the throwaway test database (tmpfs: nothing survives its removal)
 docker compose -f compose.yaml -f compose.test.yaml --profile test up -d --wait db-test
 
-# run everything: 31 unit tests (name grammar + validation rules) and
-# 77 functional tests (repository against PostgreSQL, plus 60 HTTP-level API tests)
+# run everything: 108 tests, ~15 s
+#   31 unit tests   — name grammar (7) + write-model validation rules (24)
+#   77 functional   — repository against PostgreSQL (17) + HTTP-level API tests (60)
 docker compose exec app php bin/phpunit
 
 # stop the test database when done
@@ -168,13 +179,13 @@ docker compose exec app composer cs-check
 The first test of a run applies the migrations to `db-test` automatically;
 every test then works inside a transaction that is rolled back, so tests are
 independent and order-safe and leave no data behind. Query-count assertions
-pin the N+1 rule at both levels: repository calls and HTTP requests run a
-constant number of statements (for example, all-scope search and suggestions
-are exactly one query each; listing is the page query plus its count).
+pin the N+1 rule at both levels — repository calls and HTTP requests run a
+constant number of statements (all-scope search and suggestions are exactly
+one query each; listing a constant three).
 
 There are no frontend tests (D6): the testing effort goes to the backend per
-the project decision. The frontend gate is the strict `tsc -b && vite
-build` above.
+the project decision. The frontend gate is the strict `tsc -b && vite build`
+above; interactive flows have been exercised by hand during development only.
 
 Host port 5433 mirrors `db-test` for psql debugging
 (`psql postgresql://app:app@localhost:5433/app_test`).
@@ -195,12 +206,51 @@ routes:
 | `GET /api/search?name=&scope=folder\|all&folderId=&limit&offset` | Exact search, files only | `200` + page | 400, 404 |
 | `GET /api/suggestions?prefix=` | Top-10 files starting with the prefix | `200` | — |
 
+One worked example per route (ids abbreviated; every response below is real
+output from the running stack):
+
+```bash
+curl -si -X POST http://localhost:8080/api/folders -H "Content-Type: application/json" -d '{"name":"Docs"}'
+# 201 Created · Location: /api/items/{folderId}
+# {"id":"{folderId}","type":"folder","name":"Docs","parentId":"1a0ef9c6-..."}
+
+curl -si -X POST http://localhost:8080/api/files -H "Content-Type: application/json" \
+  -d '{"parentId":"{folderId}","name":"invoice-2026.txt"}'
+# 201 Created · Location: /api/items/{fileId}
+# {"id":"{fileId}","type":"file","name":"invoice-2026.txt","parentId":"{folderId}"}
+
+curl -s "http://localhost:8080/api/folders/{rootId}/items"
+# {"items":[{"id":"{folderId}","type":"folder","name":"Docs","parentId":"1a0ef9c6-..."}],
+#  "total":1,"limit":50,"offset":0}
+
+curl -s "http://localhost:8080/api/items/{fileId}"
+# {"id":"{fileId}","type":"file","name":"invoice-2026.txt","parentId":"{folderId}",
+#  "parentPath":[{"id":"1a0ef9c6-...","name":"Root"},{"id":"{folderId}","name":"Docs"}]}
+
+curl -si -X PATCH http://localhost:8080/api/items/{fileId} -H "Content-Type: application/json" \
+  -d '{"name":"Invoice 2026.txt"}'
+# 200 OK
+# {"id":"{fileId}","type":"file","name":"Invoice 2026.txt","parentId":"{folderId}"}
+
+curl -si -X DELETE http://localhost:8080/api/items/{fileId}
+# 204 No Content (empty body; repeating it answers 404)
+
+curl -s "http://localhost:8080/api/search?name=INVOICE%202026.TXT&scope=all"
+# {"items":[{"id":"{fileId}","type":"file","name":"Invoice 2026.txt","parentId":"{folderId}",
+#  "parentPath":[...]}],"total":1,"limit":50,"offset":0}
+
+curl -s "http://localhost:8080/api/suggestions?prefix=invo"
+# {"items":[{"id":"{fileId}","name":"Invoice 2026.txt",
+#  "parentPath":[{"id":"1a0ef9c6-...","name":"Root"},{"id":"{folderId}","name":"Docs"}]}]}
+```
+
 Shapes: a listing page is `{"items": [...], "total": int, "limit": int,
 "offset": int}`; a summary is `{"id", "type": "folder"|"file", "name",
 "parentId"}`; a detail adds `"parentPath": [{"id", "name"}, ...]`. Search
 returns details; suggestions return `{"items": [{"id", "name", "parentPath"}]}`
-with no page metadata. `limit` defaults to 50 and caps at 100; `offset` ≥ 0;
-an offset past the end is `200` with empty `items` and the true `total`.
+with no page metadata. `limit` defaults to 50 and is validated to 1–100
+(values outside the range, or non-integers, are a `400`); `offset` ≥ 0; an
+offset past the end is `200` with empty `items` and the true `total`.
 
 Names are trimmed, must be non-blank, ≤ 255 characters, without `/` or `\`
 or control characters, and cannot be `.` or `..`. Search input and prefixes
@@ -208,7 +258,8 @@ are normalized the same way, so `INVOICES` finds `invoices`. Sibling names
 must be unique across both types (a folder and a file cannot share a name in
 one folder); renaming to your own current name — including a case-only
 change — succeeds. `scope=folder` requires `folderId`; `scope=all` ignores
-it.
+it. A file id given where a folder is addressed (listing, search scope) is a
+`404`, while a file given as a create-parent is a `400`.
 
 Every error is one envelope; `details` appears only on 400 and 409:
 
@@ -222,11 +273,17 @@ Every error is one envelope; `details` appears only on 400 and 409:
 }
 ```
 
+```bash
+curl -s -X POST http://localhost:8080/api/folders -H "Content-Type: application/json" -d '{"name":"Docs"}'   # again, same parent
+# 409 Conflict
+# {"error":{"code":"conflict","message":"An item with this name already exists in the parent folder.",
+#  "details":[{"field":"name","message":"An item with this name already exists in the parent folder."}]}}
+```
+
 Codes: `validation_failed` (400), `not_found` (404), `conflict` (409),
 `internal_error` (500). Unknown JSON fields are ignored. The fixed error
 codes and the shapes above are the contract the React frontend mirrors
 (`frontend/src/types`).
-
 
 ## Assumptions
 
@@ -255,12 +312,17 @@ codes and the shapes above are the contract the React frontend mirrors
 
 ## Known limitations & trade-offs
 
-- **No CI (D16).** GitHub Actions is deliberately out of scope — a user
-  decision (2026-10-01), not an omission by accident: nothing lives under
-  `.github/`, so no machine re-runs the checks on the remote. What replaces
-  it: the local gates above (`composer phpstan`, `composer cs-check`, the
-  test suite) run before every push. The trade-off is that a skipped gate is
-  caught by no machine — the enforcement is convention, not automation.
+- **One beyond-brief feature: rename.** The task brief lists create, search
+  and delete only. Rename was added by explicit user decision and is
+  recorded in the PRD as FR-4 — it is a sanctioned addition, not scope
+  creep. Everything else stays inside the brief.
+- **No CI pipeline (D16).** GitHub Actions is deliberately out of scope — a
+  user decision (2026-10-01), not an omission by accident: nothing lives
+  under `.github/`, so no machine re-runs the checks on the remote. What
+  replaces it: the local gates above (`composer phpstan`, `composer
+  cs-check`, the test suite) run before every push. The trade-off is that a
+  skipped gate is caught by no machine — the enforcement is convention, not
+  automation.
 - `backend/symfony.lock` intentionally references scaffolding files that were
   deleted from the repo after scaffolding. Leave the file alone: it changes
   only when a Composer/Flex recipe run forces it, and never run `composer
@@ -268,13 +330,17 @@ codes and the shapes above are the contract the React frontend mirrors
 - Status codes outside the envelope's vocabulary (unknown route 404, 405, 415)
   keep Symfony's default HTML error pages; the SPA never triggers them, so
   they stay outside the JSON contract on purpose.
-- A non-integer `limit`/`offset` in the query string yields a 400 whose
-  detail has an empty `field` — a Symfony query-denormalization artifact; the
-  status, code and message are still correct.
 - Concurrent duplicate-name writes resolve to exactly one `201` and one
   `409` via the database's unique index (the flush-time violation is
   translated to the envelope); there is no pre-check, so the check is
   race-free by construction but costs nothing on the happy path.
+- **Performance is designed in but not measured.** The architecture's NFR
+  targets — suggestions within ~200 ms p95 at 100,000 files (NFR-2) and a
+  10,000-item cascade delete within 10 seconds (NFR-1) — were to be verified
+  once at delivery by a seeded benchmark script. That script was deferred and
+  never built. What pins performance instead: the targeted indexes in the
+  hand-written migration and the constant query-count assertions in the test
+  suite — the structural half of the targets, without a latency number.
 - **Testcontainers was swapped for a compose-managed test database (D14).**
   No stable, maintained Testcontainers client for PHP could be verified at
   scaffolding time; the pre-approved fallback from AGENTS.md §6 applies. The
@@ -292,9 +358,11 @@ codes and the shapes above are the contract the React frontend mirrors
 - The app image is a dev image: debug enabled, dev dependencies installed,
   `.env` conventions assumed. It is not a production image; a hardened
   multistage build is future work.
-- `vendor/` and `node_modules/` live in named volumes so a clean checkout
-  still boots from one command; the trade-off is the manual refresh step
-  after dependency changes (see above).
+- `vendor/` and `node_modules/` live in named volumes (seeded automatically
+  on first boot — see How to run). The trade-off: after a change to
+  `composer.json`/`package.json` on a running stack, refresh by hand with
+  `docker compose run --rm app composer install` and `docker compose run
+  --rm node npm ci`.
 - PostgreSQL 18 moved its data layout: the volume mounts at
   `/var/lib/postgresql` (not `.../data`), per the image's own guidance.
 - Host port 8080 (nginx, the entry point) and 8081 (dev-only app) avoid
@@ -304,8 +372,20 @@ codes and the shapes above are the contract the React frontend mirrors
 
 ## What I'd improve with more time
 
+- Move items between folders — the most natural next feature (the PRD lists
+  it first among deferred quality-of-life candidates).
+- Trash with restore instead of immediate, unrecoverable deletes.
+- A CI pipeline on GitHub Actions so the test suite, PHPStan and
+  PHP-CS-Fixer run on the remote on every push (superseded for now by D16).
 - A production-shaped multistage app image (no debug, no dev dependencies,
   optimized autoloader) next to the dev image.
+- FrankenPHP worker mode and opcache tuning once the app leaves debug mode.
+- Build the seeded benchmark script the architecture deferred: a 100,000-item
+  corpus with a worst-case shared prefix, timing suggestions (200 ms p95) and
+  a 10,000-item cascade delete (10 s) against the NFR targets.
+- Revisit Redis (D2) if a concrete need appears — caching or rate limiting
+  would be the first candidates.
+- A Symfony 8.2 LTS hop when it is released (the stack pins 8.1 today).
 - A dedicated health route so the app healthcheck can distinguish "framework
   answering" from "any HTTP response at all".
 - Compose profiles so the tooling containers start only when wanted (the

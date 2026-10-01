@@ -3,7 +3,7 @@ title: 'Local quality gates: PHPStan and PHP-CS-Fixer'
 type: 'chore'
 ticket: ''
 created: '2026-10-01'
-status: 'ready-for-dev'
+status: 'built'
 baseline_revision: '64296de'
 route: 'full'
 route_source: 'auto'
@@ -41,14 +41,14 @@ context: ['{project-root}/AGENTS.md', '{project-root}/_bmad-output/initiative-fi
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `git` -- create `chore/phpstan-cs-fixer-gates` off `main` (start from a tree that carries no api-endpoints in-flight changes)
-- [ ] `backend/composer.json` -- in the container: `composer require --dev phpstan/phpstan:^2 friendsofphp/php-cs-fixer:^3` (newest stable, lock pins exact); add the three scripts; `.gitignore` the fixer cache
-- [ ] `backend/phpstan.neon` -- level `max`, paths `src`, `tests`, `migrations`; no baseline, no ignores
-- [ ] `backend/src/**`, `backend/tests/**` -- fix every max-level error in code; run `composer cs-fix` once PHPStan is clean and let it reformat the analysed tree; commit as separate `fix` and `style` commits
-- [ ] `backend/.php-cs-fixer.dist.php` -- ruleset `@Symfony` plus `declare_strict_types`, risky rules allowed, Finder on the same three paths
-- [ ] `AGENTS.md` -- §8 retitled "Tooling": keep PHPStan ("highest practical level, zero unresolved issues") and PHP-CS-Fixer as the enforcement layer, run locally before every push; delete the GitHub Actions bullet; append D16 to the decision log (CI out of scope, supersedes the CI part of D7); retitle and tick the project-status entry
-- [ ] `README.md` -- Known limitations: CI is deliberately out of scope (D16) and what replaces it, plus the flex-lock note: `backend/symfony.lock` intentionally references scaffolding files that were deleted, so leave it alone and never run `recipes:update` against it without pruning; How to test: the exact gate commands
-- [ ] spine `architecture-file-system-app.md` -- amend the Deferred CI bullet: the pipeline is out of scope per D16 (2026-10-01); gates are local
+- [x] `git` -- create `chore/phpstan-cs-fixer-gates` off `main` (start from a tree that carries no api-endpoints in-flight changes)
+- [x] `backend/composer.json` -- in the container: `composer require --dev phpstan/phpstan:^2 friendsofphp/php-cs-fixer:^3` (newest stable, lock pins exact); add the three scripts; `.gitignore` the fixer cache
+- [x] `backend/phpstan.neon` -- level `max`, paths `src`, `tests`, `migrations`; no baseline, no ignores
+- [x] `backend/src/**`, `backend/tests/**` -- fix every max-level error in code; run `composer cs-fix` once PHPStan is clean and let it reformat the analysed tree; commit as separate `fix` and `style` commits
+- [x] `backend/.php-cs-fixer.dist.php` -- ruleset `@Symfony` plus `declare_strict_types`, risky rules allowed, Finder on the same three paths
+- [x] `AGENTS.md` -- §8 retitled "Tooling": keep PHPStan ("highest practical level, zero unresolved issues") and PHP-CS-Fixer as the enforcement layer, run locally before every push; delete the GitHub Actions bullet; append D16 to the decision log (CI out of scope, supersedes the CI part of D7); retitle and tick the project-status entry
+- [x] `README.md` -- Known limitations: CI is deliberately out of scope (D16) and what replaces it, plus the flex-lock note: `backend/symfony.lock` intentionally references scaffolding files that were deleted, so leave it alone and never run `recipes:update` against it without pruning; How to test: the exact gate commands
+- [x] spine `architecture-file-system-app.md` -- amend the Deferred CI bullet: the pipeline is out of scope per D16 (2026-10-01); gates are local
 
 **Acceptance Criteria:**
 - Given the app container, when `composer phpstan` runs, then it reports zero errors at level `max`, and `phpstan.neon` contains no baseline and no `ignoreErrors`.

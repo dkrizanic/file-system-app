@@ -240,15 +240,16 @@ folders first) · partial prefix index per AD-7.
 | FR-5/FR-6 delete + cascade | `Service/ItemService` + FK `ON DELETE CASCADE` | AD-2, AD-4, AD-5 |
 | FR-7/FR-8 exact search (files only) | `Repository` + CTE scope | AD-2, AD-3, AD-6, AD-9 |
 | FR-9 suggestions | `Repository` prefix query | AD-7, AD-9 |
-| NFR-1/2 performance | indexes + query-count tests + benchmark script | AD-2, AD-7, inherited perf principles |
+| NFR-1/2 performance | indexes + query-count tests (benchmark script deferred) | AD-2, AD-7, inherited perf principles |
 | NFR-3 run/deploy | compose + README | AD-8 |
 
 ## Deferred
 
 - NFR-1/2 measurement: functional tests assert query counts on listing,
-  search, and suggestions; NFR numbers (200 ms p95, 10 s / 10k delete) are
-  verified once at delivery with a seeded benchmark script (100k corpus incl.
-  worst-case shared prefix) — a dev tool, not CI.
+  search, and suggestions. The seeded benchmark script (100k corpus incl.
+  worst-case shared prefix) was deferred and not built; the NFR numbers
+  (200 ms p95, 10 s / 10k delete) are unmeasured — recorded in the README's
+  Known limitations.
 - Doctrine migration naming, fixture/seed strategy (beyond the root seed) —
   scaffold-time detail.
 - CI workflow — out of scope per D16 (2026-10-01); the local gates in
