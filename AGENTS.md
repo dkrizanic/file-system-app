@@ -117,15 +117,17 @@ Upgrades afterwards are deliberate, documented commits.
 |---------------|----------------|-----------------|
 | GET collection | 200            | —               |
 | GET item       | 200            | 404             |
-| POST           | 201 + Location | 400, 409        |
+| POST           | 201 + Location | 400, 404, 409   |
 | PUT / PATCH    | 200            | 400, 404, 409   |
-| DELETE         | 204            | 404             |
+| DELETE         | 204            | 400, 404       |
 
 - Validation failure → `400` with the error envelope below; duplicates/conflicts →
   `409`; unexpected failure → generic `500` that never leaks stack traces.
 - Collection endpoints are paginated (`limit`/`offset` with sane defaults and a cap)
   and include pagination metadata (`total`, `limit`, `offset`). No endpoint ever
   returns an unbounded result set.
+- `POST` returns `404` when it references a nonexistent parent resource; `409
+  conflict` responses carry field-level `details` for the offending field.
 - JSON only. Field names are camelCase (D3).
 - Error envelope, used everywhere, no exceptions:
 
@@ -273,6 +275,30 @@ The README is part of the deliverable and must never drift from reality:
 6. Definition of done for any change: tests green · static analysis clean · no
    scaffolding or dead code · README still truthful · conventions respected.
 
+### BMAD
+
+The BMAD method (v6) drives our process. It is installed project-locally:
+
+- `.agents/skills/` — the skills (agents, workflows, tasks)
+- `_bmad/` — project config and shared scripts; artifacts land in `_bmad-output/`
+- `skills-lock.json` — version lock; update with `npx skills update -p -y`
+
+Running a skill here means: read `.agents/skills/<name>/SKILL.md` and follow it in
+the current session, including its references and scripts (`uv` is installed).
+Start from the `bmad` skill when unsure which one applies.
+
+Typical flow for this project: analyst / PM / architect skills produce the brief,
+PRD and architecture in `_bmad-output/`; `bmad-build` and `bmad-agent-dev`
+implement; `bmad-code-review` reviews. Ticket slicing via `bmad-ticket` is
+skipped (D13) — the PRD and architecture spine are small enough that build
+sessions consume them directly, one feature branch per work unit.
+
+Authority split: BMAD decides the **process** — what to do next and which
+artifacts to produce. This file stays the authority for **engineering
+conventions** — stack, code style, git, testing, README. If a BMAD instruction
+conflicts with this file, this file wins or the user decides. Never install
+additional BMAD modules without asking.
+
 ### Decision log (append-only, newest at the bottom)
 
 | #  | Decision | Why | Date |
@@ -288,11 +314,15 @@ The README is part of the deliverable and must never drift from reality:
 | D9 | Interfaces collected in `src/Contract/`; implementations keep natural names in their layer folders | Java-style contract/implementation separation with one glanceable folder and no `*Impl` naming noise | 2026-09-30 |
 | D10 | `src/Mapper/` owns all entity ↔ model translation; services use mappers, controllers never do | One place for translation; controllers stay validation + one interface call | 2026-09-30 |
 | D11 | No separate backend validation layer and no Yup on the frontend | Symfony Validator on write DTOs is the single source of truth; frontend renders the 400 envelope and uses native validation first, adding Zod only if a form outgrows it | 2026-09-30 |
+| D12 | BMAD method v6 adopted: skills in `.agents/skills/`, config in `_bmad/`, artifacts in `_bmad-output/` | Structured planning-to-build process; AGENTS.md keeps engineering authority | 2026-09-30 |
+| D13 | No `bmad-ticket` slicing; `bmad-build` consumes the PRD and architecture spine directly, one feature branch per work unit | Ticket artifacts add ceremony without payoff at this size; revisit if sessions or contributors multiply | 2026-10-01 |
 
 ### Project status
 
 - [x] Git repo, GitHub remote, AGENTS.md
 - [x] Folder structure: `backend/` (Symfony MVC) + `frontend/` (React)
+- [x] BMAD PRD: `_bmad-output/initiative-file-system-app/prd-file-system-app/`
+- [x] BMAD architecture doc: `_bmad-output/initiative-file-system-app/architecture-file-system-app/` (analyst step skipped — task brief was the input)
 - [ ] Symfony skeleton + Docker dev environment (compose with PostgreSQL)
 - [ ] Domain model & migrations (file-system domain)
 - [ ] API endpoints + validation + error handling
@@ -301,7 +331,36 @@ The README is part of the deliverable and must never drift from reality:
 - [ ] Tooling & CI: PHPStan, PHP-CS-Fixer, GitHub Actions pipeline
 - [ ] README polish: assumptions, trade-offs, improvements
 
-## 12. Task brief (verbatim, when available)
+## 12. Task brief (verbatim)
 
-_To be filled with the official company task statement once provided. Until then,
-treat §2 as the source of truth and confirm scope with the user._
+> We want to create a large-scale browser-based file system, functionally similar to
+> Dropbox's web interface, or a folder browsing structure you might find on a Windows
+> or macOS device. A user should be able to:
+>
+> - Create folders and subfolders
+> - Create new files in the folders
+> - Search files by their exact name within a parent folder or across all files
+>   List the top 10 files that start with a search string. This will be used in the
+>   search box to show possible matches when the user is typing. Only "start with"
+>   logic is required.
+> - Delete folders and files
+>
+> For this exercise, you can assume that a file is simply its name and does not
+> contain any other content.
+>
+> The frontend does NOT have to include any design or be adapted for mobile devices.
+> The default React framework is acceptable.
+>
+> API service should use a SQL or noSQL database (of your choice! InMemory or File
+> DB is also acceptable).
+>
+> Provide a README with instructions on how to deploy your application.
+>
+> Additional notes:
+>
+> - Solution has to build and run in debug mode
+> - Docker is optional and it will be considered
+> - The solution must be delivered via a Git repository.
+> - We will rate your solution on code structure, readability, and maintainability.
+> - To scope down this assignment, please don't worry about authentication or
+>   authorization.
