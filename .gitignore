@@ -1,0 +1,13 @@
+# dependencies
+/vendor/
+node_modules/
+
+# runtime and build output
+/backend/var/
+/dist/
+/build/
+
+# environment
+.env
+.env.local
+.env.*.local
