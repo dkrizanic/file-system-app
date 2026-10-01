@@ -10,9 +10,14 @@ tree), the `ItemRepository` behind `src/Contract/ItemRepositoryInterface`,
 the eight API endpoints over `App\Contract\ItemServiceInterface` with
 validation and a uniform error envelope, and a real PHPUnit suite (unit +
 functional, including HTTP-level tests) against a throwaway PostgreSQL
-container. The React frontend is the next unit.
+container. The React SPA and the nginx origin are in place too: folder
+browsing, create, rename, delete, exact search and typeahead suggestions,
+talking to that API on one origin. Tooling, CI and the final README polish
+are the next units.
 
 ## What it does
+
+The data layer and API (previous units):
 
 - One `item` table holds the whole hierarchy (`folder` | `file` discriminator,
   adjacency list via `parent_id`, foreign key `ON DELETE CASCADE`), created by
@@ -38,8 +43,27 @@ container. The React frontend is the next unit.
   partial unique index guarantees it stays the only parent-less item; the root
   cannot be renamed or deleted.
 
-Tests exercise all of this against real PostgreSQL — the database is never
-mocked.
+The frontend (this unit):
+
+- A React 19 + TypeScript (strict) SPA built with Vite: folder listing
+  (folders first, paginated), breadcrumbs from the item's `parentPath`,
+  create folder/file, rename, delete with an explicit cascade warning,
+  exact-name search with a current-folder/everywhere scope toggle, and a
+  debounced typeahead whose suggestions jump to the file's parent folder.
+- Routing has zero dependencies: the open folder id lives in the URL hash —
+  `#/` is the root, `#/folders/{id}` deep-links anywhere. Search results are
+  view state.
+- All HTTP goes through one typed API layer (`frontend/src/api/client.ts`),
+  one function per endpoint, which parses the backend's error envelope into a
+  single `ApiError` carrying `code`, `message` and the 400/409 field
+  `details`. Forms render those details inline under the `name` field;
+  everything else surfaces in a dismissible banner. Nothing is swallowed.
+- An `ErrorBoundary` (the one class component) wraps the whole page, the
+  search box and the form area — a render crash never blanks the screen.
+- The name grammar is server-owned: forms use native `required` /
+  `maxLength=255` only, send raw input, and let the API's validation decide.
+- nginx serves the built SPA and proxies `/api` to the Symfony app, so the
+  browser sees one origin.
 
 ## Requirements
 
@@ -48,9 +72,8 @@ mocked.
 - A checkout of this repository.
 
 Nothing else is needed on the host: no PHP, no Composer, no Node. The
-containers carry the authoritative runtimes; on the backend that is PHP 8.5,
-and `backend/composer.json` pins `config.platform.php: 8.5.0` so dependency
-resolution always targets it.
+containers carry the authoritative runtimes: PHP 8.5 (`backend/composer.json`
+pins `config.platform.php: 8.5.0`), Node 24 and nginx 1.30.
 
 ## How to run
 
@@ -58,21 +81,32 @@ resolution always targets it.
 docker compose up -d --build
 ```
 
-Then create the schema and try the API:
+Then create the schema and check the stack is alive:
 
 ```bash
 docker compose exec app php bin/console doctrine:migrations:migrate -n
-docker compose ps                                   # app and db healthy
+docker compose ps                                   # app, db and frontend healthy
+```
+
+Open **http://localhost:8080** — nginx serves the SPA and proxies `/api` to
+the app on one origin. The `dbal` sanity checks from earlier units still work:
+
+```bash
 docker compose exec app php bin/console --version   # Symfony v8.1.x (env: dev, debug: true)
+docker compose exec app php bin/console dbal:run-sql "SELECT id, parent_id, name FROM item"
 curl -si -X POST http://localhost:8080/api/folders -H "Content-Type: application/json" -d '{"name":"Docs"}'
 # HTTP/1.1 201 Created ... Location: /api/items/<uuid> {"id":"...","type":"folder","name":"Docs","parentId":"1a0ef9c6-..."}
 curl -s "http://localhost:8080/api/folders/1a0ef9c6-0000-7000-8000-000000000000/items"
 # {"items":[...],"total":1,"limit":50,"offset":0}
 ```
 
-The migration is idempotent: running it again is a no-op. The API answers on
-`http://localhost:8080` (FrankenPHP serving the Symfony app in `APP_ENV=dev`,
-`APP_DEBUG=1`). PostgreSQL data lives in the `db_data` named volume.
+The `dbal:run-sql` line should show the seeded root row
+(`1a0ef9c6-…-000000000000`, no parent). The migration is idempotent: running
+it again is a no-op. The app container runs FrankenPHP serving Symfony in
+`APP_ENV=dev`, `APP_DEBUG=1`; PostgreSQL data lives in the `db_data` named
+volume. The API answers on `http://localhost:8080` through nginx — host port
+8080 belongs to nginx (the entry point); the dev override additionally
+exposes the app itself on 8081 for direct reachability.
 
 Everyday commands:
 
@@ -82,20 +116,34 @@ docker compose down                 # stop (keeps the database volume)
 docker compose down -v              # stop and wipe the database volume
 ```
 
-Working on the backend: `compose.override.yaml` (auto-loaded) bind-mounts
-`./backend` into the container for live editing and keeps `vendor/` in a
-named volume seeded from the image. After pulling changes that touch
-`composer.json`/`composer.lock`, refresh that volume:
+### Frontend development
+
+The `node` service (compose profile `tools`, used only through `run`) gives a
+container-based dev workflow against the bind-mounted `./frontend`:
 
 ```bash
-docker compose run --rm app composer install
+# first time, and after pulling changes that touch package.json/lock
+docker compose run --rm node npm ci
+
+# dev server with hot reload on http://localhost:5173
+docker compose run --rm --publish 5173:5173 node npm run dev
+
+# production build (strict tsc + vite build)
+docker compose run --rm node npm run build
 ```
+
+The Vite dev server proxies `/api` into the compose network
+(`API_PROXY_TARGET=http://app:80` set by the override). `node_modules/` lives
+in a named volume seeded by `npm ci`, so the Windows/OneDrive host filesystem
+never sees it. `frontend/vite.config.ts` defaults the proxy to
+`http://localhost:8081`, so running Vite on a host against the published dev
+port works too.
 
 ## How to test
 
-The suite runs inside the app container against `db-test`, a second
-PostgreSQL 18 under the compose `test` profile — a real database, never a
-mock or an in-memory substitute.
+The backend suite runs inside the app container against `db-test`, a second
+PostgreSQL 18 under the compose `test` profile — a real database, never a mock
+or an in-memory substitute.
 
 ```bash
 # start the throwaway test database (tmpfs: nothing survives its removal)
@@ -115,6 +163,10 @@ independent and order-safe and leave no data behind. Query-count assertions
 pin the N+1 rule at both levels: repository calls and HTTP requests run a
 constant number of statements (for example, all-scope search and suggestions
 are exactly one query each; listing is the page query plus its count).
+
+There are no frontend tests (D6): the testing effort goes to the backend per
+the project decision. The frontend gates are the strict `tsc -b && vite
+build` above (run in CI once the pipeline unit lands).
 
 Host port 5433 mirrors `db-test` for psql debugging
 (`psql postgresql://app:app@localhost:5433/app_test`).
@@ -164,7 +216,9 @@ Every error is one envelope; `details` appears only on 400 and 409:
 
 Codes: `validation_failed` (400), `not_found` (404), `conflict` (409),
 `internal_error` (500). Unknown JSON fields are ignored. The fixed error
-codes and the shapes above are the contract the React frontend will mirror.
+codes and the shapes above are the contract the React frontend mirrors
+(`frontend/src/types`).
+
 
 ## Assumptions
 
@@ -183,11 +237,17 @@ codes and the shapes above are the contract the React frontend will mirror.
   committed `.env.dev` carries a generated development-only `APP_SECRET`,
   which is the framework's own convention and holds nothing production-
   sensitive; `.env.test` similarly carries a fixed test secret.
+- No router, state-management or validation-library dependency on the
+  frontend: the open folder id lives in the URL hash, forms use native
+  validation attributes (`required`, `maxLength=255`) mirroring the backend's
+  write models, and the name grammar stays server-owned. Search results are
+  view state, not URL.
+- No visual design effort: the brief scopes the frontend down to
+  functionality, so the styles are plain utility CSS.
 
 ## Known limitations & trade-offs
 
-- No frontend and no CI yet — these are the next planned units, not omissions
-  by accident.
+- No CI yet — the next planned unit, not an omission by accident.
 - Status codes outside the envelope's vocabulary (unknown route 404, 405, 415)
   keep Symfony's default HTML error pages; the SPA never triggers them, so
   they stay outside the JSON contract on purpose.
@@ -203,6 +263,10 @@ codes and the shapes above are the contract the React frontend will mirror.
   scaffolding time; the pre-approved fallback from AGENTS.md §6 applies. The
   trade-off: the test database must be started with the compose command
   above instead of being spawned per test run.
+- **No frontend tests (D6).** The SPA is covered by the strict TypeScript
+  build gate only; the interactive flows are verified by hand.
+- **No ESLint/Prettier yet** — lint arrives with the CI unit; strict `tsc`
+  covers the most valuable part in the meantime.
 - Doctrine's schema tool must never run against these databases: migrations
   own the schema. The ORM mapping intentionally does not declare the
   partial indexes, the `COLLATE "C"` column and `text_pattern_ops` — they
@@ -211,22 +275,26 @@ codes and the shapes above are the contract the React frontend will mirror.
 - The app image is a dev image: debug enabled, dev dependencies installed,
   `.env` conventions assumed. It is not a production image; a hardened
   multistage build is future work.
-- `vendor/` inside the container lives in a named volume so a clean checkout
-  still boots from one command; the trade-off is the manual `composer install`
-  step after dependency changes (see above).
+- `vendor/` and `node_modules/` live in named volumes so a clean checkout
+  still boots from one command; the trade-off is the manual refresh step
+  after dependency changes (see above).
 - PostgreSQL 18 moved its data layout: the volume mounts at
   `/var/lib/postgresql` (not `.../data`), per the image's own guidance.
-- Host port 8080 (not 80) avoids privileged-port trouble on developer
-  machines.
+- Host port 8080 (nginx, the entry point) and 8081 (dev-only app) avoid
+  privileged-port trouble on developer machines.
+- Search results do not survive a page reload: they are view state while the
+  open folder is a URL hash. Refresh lands you back in the folder view.
 
 ## What I'd improve with more time
 
-- A production-shaped multistage image (no debug, no dev dependencies,
+- A production-shaped multistage app image (no debug, no dev dependencies,
   optimized autoloader) next to the dev image.
 - A dedicated health route so the app healthcheck can distinguish "framework
   answering" from "any HTTP response at all".
-- Compose profiles so the future nginx/frontend container and any tooling
-  containers start only when wanted.
+- Compose profiles so the tooling containers start only when wanted (the
+  `node` service already has one).
 - RFC 7807 (`application/problem+json`) error bodies if a non-browser
   consumer ever needs machine-readable error semantics beyond the fixed
   `code` vocabulary.
+- Keyboard navigation and ARIA roles for the suggestions dropdown, and the
+  search query in the URL so results can be shared and refreshed.

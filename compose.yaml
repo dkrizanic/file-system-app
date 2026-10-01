@@ -3,13 +3,30 @@ name: file-system-app
 services:
   app:
     build: ./backend
-    ports:
-      - "8080:80"
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
       # Any HTTP answer counts as healthy — the 404 page included.
+      test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost/"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+  # Entry point on one origin: serves the built SPA (with nginx) and
+  # proxies /api to app.
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8080:80"
+    depends_on:
+      app:
+        condition: service_healthy
+    healthcheck:
+      # Same convention as the app: any HTTP answer counts as healthy.
       test: ["CMD", "curl", "-s", "-o", "/dev/null", "http://localhost/"]
       interval: 5s
       timeout: 3s

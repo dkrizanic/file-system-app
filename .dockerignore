@@ -1,0 +1,14 @@
+# The frontend image build uses the repository root as its context; nothing
+# outside frontend/ and nginx/ is needed in the image.
+.git
+.agents
+.zcode
+_bmad
+_bmad-output
+backend
+compose.yaml
+compose.override.yaml
+compose.test.yaml
+frontend/node_modules
+frontend/dist
+skills-lock.json

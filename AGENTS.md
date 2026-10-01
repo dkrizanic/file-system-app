@@ -332,7 +332,7 @@ additional BMAD modules without asking.
 - [x] Symfony skeleton + Docker dev environment (compose with PostgreSQL)
 - [x] Domain model & migrations (file-system domain)
 - [x] API endpoints + validation + error handling
-- [ ] React app: structure, API layer, error boundary
+- [x] React app: structure, API layer, error boundary
 - [x] Functional suite (compose `db-test`, real PostgreSQL) + unit tests — delivered with the domain model; grows with each API unit
 - [ ] Tooling & CI: PHPStan, PHP-CS-Fixer, GitHub Actions pipeline
 - [ ] README polish: assumptions, trade-offs, improvements

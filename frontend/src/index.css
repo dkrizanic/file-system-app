@@ -1,0 +1,279 @@
+:root {
+  color-scheme: light;
+  font-family: system-ui, sans-serif;
+  line-height: 1.4;
+}
+
+body {
+  margin: 0;
+  background: #f5f5f4;
+  color: #1c1917;
+}
+
+button {
+  font: inherit;
+  padding: 0.25rem 0.7rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.3rem;
+  background: #fff;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  background: #f0efee;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button.danger {
+  border-color: #b91c1c;
+  color: #b91c1c;
+}
+
+input[type='text'],
+input[type='search'] {
+  font: inherit;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.3rem;
+}
+
+.browser {
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.error-banner {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #fca5a5;
+  border-radius: 0.3rem;
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
+.button-link {
+  border: none;
+  background: none;
+  color: inherit;
+  text-decoration: underline;
+}
+
+.loading-state,
+.empty-state {
+  color: #57534e;
+  font-style: italic;
+}
+
+.breadcrumbs {
+  margin: 0.75rem 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.breadcrumb-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.breadcrumb-separator {
+  margin: 0 0.35rem;
+  color: #a8a29e;
+}
+
+.breadcrumb-current {
+  font-weight: 600;
+}
+
+.forms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: end;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid #e7e5e4;
+  border-radius: 0.3rem;
+  background: #fff;
+}
+
+.item-form {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.form-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #57534e;
+}
+
+.form-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.85rem;
+}
+
+.item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid #e7e5e4;
+  border-radius: 0.3rem;
+  background: #fff;
+}
+
+.item-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.4rem 0.75rem;
+}
+
+.item-row + .item-row {
+  border-top: 1px solid #f0efee;
+}
+
+.item-name {
+  flex: 1;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.item-name-folder {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #2563eb;
+  text-decoration: underline;
+}
+
+.item-type,
+.item-path {
+  font-size: 0.8rem;
+  color: #79716b;
+}
+
+.item-path {
+  border: none;
+  background: none;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.pagination {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  margin: 0.75rem 0;
+}
+
+.pagination-info {
+  color: #57534e;
+}
+
+.search-box {
+  position: relative;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.scope-toggle {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+  color: #57534e;
+}
+
+.suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 10;
+  width: min(30rem, 100%);
+  margin: 0.2rem 0 0;
+  padding: 0.2rem;
+  list-style: none;
+  border: 1px solid #d6d3d1;
+  border-radius: 0.3rem;
+  background: #fff;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.1);
+}
+
+.suggestion {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 1rem;
+  border: none;
+  background: none;
+  padding: 0.3rem 0.5rem;
+}
+
+.suggestion-path {
+  color: #79716b;
+  font-size: 0.8rem;
+}
+
+.search-results-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.search-results-header h2 {
+  overflow-wrap: anywhere;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.modal {
+  width: min(24rem, calc(100vw - 2rem));
+  padding: 1rem 1.25rem;
+  border-radius: 0.4rem;
+  background: #fff;
+}
+
+.modal p {
+  overflow-wrap: anywhere;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.not-found {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: start;
+  margin-top: 2rem;
+}
