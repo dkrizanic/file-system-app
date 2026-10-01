@@ -2,6 +2,9 @@
 /vendor/
 node_modules/
 
+# bmad per-run rendered workflow scratch
+/_bmad/render/
+
 # runtime and build output
 /backend/var/
 /dist/

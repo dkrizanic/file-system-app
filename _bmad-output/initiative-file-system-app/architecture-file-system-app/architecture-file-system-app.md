@@ -45,7 +45,7 @@ From `AGENTS.md` and the PRD — binding, read-only; this spine does not re-deci
 | --- | --- | --- |
 | Layering + `src/Contract/` + `src/Mapper/` + DTO Read/Write | AGENTS.md §3 | All backend code |
 | API conventions: camelCase JSON, error envelope vocabulary, status table (incl. POST 404, 409 with field `details`), pagination metadata | AGENTS.md §4 | Every endpoint |
-| Testing: real PostgreSQL via Testcontainers, backend only; unit tests for validation | AGENTS.md §6, D6 | Test suite |
+| Testing: real PostgreSQL via the compose `test`-profile `db-test` container, backend only; unit tests for validation | AGENTS.md §6, D6/D14 | Test suite |
 | PHPStan / PHP-CS-Fixer / GitHub Actions CI | AGENTS.md §8, D7 | Tooling |
 | Performance principles: indexes in migrations, no N+1, query-count assertions, paginated collections | AGENTS.md §5 | Data access layer |
 | FR/NFR contracts incl. normalized-name matching, pagination 50/100, atomic cascade delete | PRD §4 | All features |
@@ -65,10 +65,10 @@ From `AGENTS.md` and the PRD — binding, read-only; this spine does not re-deci
 
 - **Binds:** FR-6, FR-7, FR-8, FR-9
 - **Prevents:** per-unit traversal drift (PHP recursion vs SQL walks) and N+1 ancestor loops.
-- **Rule:** the hierarchy is `item.parent_id → item.id`. Subtree operations
-  (cascade delete, scoped search) and the ancestor walk that builds
-  `parentPath` are each a single PostgreSQL recursive CTE (`WITH RECURSIVE`).
-  Application code never walks the tree in a loop.
+- **Rule:** the hierarchy is `item.parent_id → item.id`. Scoped subtree search
+  and the ancestor walk that builds `parentPath` are each a single PostgreSQL
+  recursive CTE (`WITH RECURSIVE`); cascade delete rides the foreign key's
+  `ON DELETE CASCADE` (AD-5). Application code never walks the tree in a loop.
 
 ### AD-3 — `normalized_name` owns all matching; one normalizer owns the column
 
@@ -97,8 +97,10 @@ From `AGENTS.md` and the PRD — binding, read-only; this spine does not re-deci
 - **Binds:** FR-1, FR-4, FR-5, FR-6
 - **Prevents:** partial deletes and duplicate-name windows.
 - **Rule:** every mutating service call opens one transaction. Cascade delete
-  collects the subtree ids with a recursive CTE and deletes them in that same
-  transaction. No write path may commit partially.
+  rides the `parent_id` foreign key's `ON DELETE CASCADE` inside that
+  transaction — PostgreSQL removes the subtree atomically in one statement;
+  the recursive CTEs remain for scoped search and ancestor paths (AD-2). No
+  write path may commit partially.
 
 ### AD-6 — API surface is fixed
 
@@ -235,7 +237,7 @@ folders first) · partial prefix index per AD-7.
 | FR-1/FR-3 create folder/file | `Service/ItemService`, `DTO/Write/CreateItem`, `NameNormalizer` | AD-1, AD-3, AD-5, AD-6, AD-9 |
 | FR-2 listing | `Repository` (paged, folders-first ordered) | AD-1, AD-6, AD-9 |
 | FR-4 rename | `Service/ItemService` | AD-3, AD-5 |
-| FR-5/FR-6 delete + cascade | `Service/ItemService` + recursive CTE | AD-2, AD-4, AD-5 |
+| FR-5/FR-6 delete + cascade | `Service/ItemService` + FK `ON DELETE CASCADE` | AD-2, AD-4, AD-5 |
 | FR-7/FR-8 exact search (files only) | `Repository` + CTE scope | AD-2, AD-3, AD-6, AD-9 |
 | FR-9 suggestions | `Repository` prefix query | AD-7, AD-9 |
 | NFR-1/2 performance | indexes + query-count tests + benchmark script | AD-2, AD-7, inherited perf principles |

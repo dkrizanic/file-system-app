@@ -1,0 +1,12 @@
+# Dev layer, auto-loaded by `docker compose up` alongside compose.yaml.
+# The bind mount gives live editing of backend sources; vendor/ stays in a
+# named volume seeded from the image on first run. After changing composer
+# dependencies, refresh it with: docker compose run --rm app composer install
+services:
+  app:
+    volumes:
+      - ./backend:/app
+      - app_vendor:/app/vendor
+
+volumes:
+  app_vendor:

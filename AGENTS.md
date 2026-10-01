@@ -52,7 +52,7 @@ Over-engineering is as much an interview failure as sloppiness.
 | Cache      | Redis — **only when a concrete need appears** (see Decision log) |
 | Frontend   | React + TypeScript SPA (Vite) on Node LTS, separate from the API |
 | Infra      | Docker + docker compose for a one-command run |
-| Tests      | PHPUnit with a real PostgreSQL via Testcontainers — backend only; no frontend tests (D6) |
+| Tests      | PHPUnit with a real PostgreSQL via a compose `test`-profile container (`db-test`, D14) — backend only; no frontend tests (D6) |
 
 **Versions policy:** use the newest **stable** versions at scaffolding time and pin
 them (composer.json, package.json, Dockerfile, compose). No RC/beta versions.
@@ -83,7 +83,9 @@ Upgrades afterwards are deliberate, documented commits.
 - **Mappers** (`src/Mapper/`) are the only place entity ↔ model translation
   happens: write model → entity, entity → read model. Stateless final classes
   without interfaces — pure transformations, an implementation detail of
-  services. Controllers never touch mappers or entities.
+  services. Controllers never touch mappers or entities. The same applies to
+  every pure transformation (`NameNormalizer`): the interface rule covers
+  services and repositories, not stateless final transformation classes.
 - A central exception listener maps domain exceptions to HTTP status codes.
   No try/catch noise in controllers.
 
@@ -187,8 +189,9 @@ Decision log.
 
 ## 6. Testing strategy
 
-- **Functional tests** — real HTTP requests against the API with a **real
-  PostgreSQL container** started by Testcontainers. The database is never mocked.
+- **Functional tests** — real requests / repository calls against a **real
+  PostgreSQL container** started by compose under the `test` profile
+  (`db-test`, root `compose.test.yaml`). The database is never mocked.
 - **Unit tests** — validation rules, small pure logic; fast, no container.
 
 Principles:
@@ -196,15 +199,16 @@ Principles:
 - Arrange–Act–Assert; one behavior per test.
 - Test names describe behavior: `create_directory_with_blank_name_returns_400`.
 - Tests are independent and order-safe; each test creates its own data; no shared
-  mutable state.
+  mutable state. Functional tests wrap each test in a transaction that is rolled
+  back.
 - Test public behavior, not implementation details.
 - Cover happy paths and the meaningful edge cases: blank/oversized input, missing
   resources, name conflicts, boundary values.
 - Every bug fix ships with a regression test that fails without it.
+- Assert query counts on critical paths so N+1 stays impossible by construction.
 
-Fallback: if the Testcontainers PHP library proves unusable with Docker Desktop on
-Windows, switch to a compose-managed throwaway test database — and record it as a
-trade-off in the README and the Decision log.
+The §6 fallback was applied as D14: no stable Testcontainers client for PHP
+could be verified, so the suite uses a compose-managed throwaway test database.
 
 ## 7. Git conventions
 
@@ -316,6 +320,8 @@ additional BMAD modules without asking.
 | D11 | No separate backend validation layer and no Yup on the frontend | Symfony Validator on write DTOs is the single source of truth; frontend renders the 400 envelope and uses native validation first, adding Zod only if a form outgrows it | 2026-09-30 |
 | D12 | BMAD method v6 adopted: skills in `.agents/skills/`, config in `_bmad/`, artifacts in `_bmad-output/` | Structured planning-to-build process; AGENTS.md keeps engineering authority | 2026-09-30 |
 | D13 | No `bmad-ticket` slicing; `bmad-build` consumes the PRD and architecture spine directly, one feature branch per work unit | Ticket artifacts add ceremony without payoff at this size; revisit if sessions or contributors multiply | 2026-10-01 |
+| D14 | Test-database fallback applied: compose-managed throwaway `db-test` (root `compose.test.yaml`, `test` profile, tmpfs, host port 5433) replaces Testcontainers | No stable, maintained Testcontainers client for PHP could be verified; the §6 fallback applies. Trade-off stated in the README | 2026-10-01 |
+| D15 | Cascade delete rides the `parent_id` FK `ON DELETE CASCADE` inside the service transaction; spine AD-5 amended (same id) | PostgreSQL removes the subtree atomically in one statement; recursive CTEs remain for scoped search and ancestor paths | 2026-10-01 |
 
 ### Project status
 
@@ -323,11 +329,11 @@ additional BMAD modules without asking.
 - [x] Folder structure: `backend/` (Symfony MVC) + `frontend/` (React)
 - [x] BMAD PRD: `_bmad-output/initiative-file-system-app/prd-file-system-app/`
 - [x] BMAD architecture doc: `_bmad-output/initiative-file-system-app/architecture-file-system-app/` (analyst step skipped — task brief was the input)
-- [ ] Symfony skeleton + Docker dev environment (compose with PostgreSQL)
-- [ ] Domain model & migrations (file-system domain)
+- [x] Symfony skeleton + Docker dev environment (compose with PostgreSQL)
+- [x] Domain model & migrations (file-system domain)
 - [ ] API endpoints + validation + error handling
 - [ ] React app: structure, API layer, error boundary
-- [ ] Testcontainers functional suite + unit tests
+- [x] Functional suite (compose `db-test`, real PostgreSQL) + unit tests — delivered with the domain model; grows with each API unit
 - [ ] Tooling & CI: PHPStan, PHP-CS-Fixer, GitHub Actions pipeline
 - [ ] README polish: assumptions, trade-offs, improvements
 
