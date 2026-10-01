@@ -331,7 +331,7 @@ additional BMAD modules without asking.
 - [x] BMAD architecture doc: `_bmad-output/initiative-file-system-app/architecture-file-system-app/` (analyst step skipped — task brief was the input)
 - [x] Symfony skeleton + Docker dev environment (compose with PostgreSQL)
 - [x] Domain model & migrations (file-system domain)
-- [ ] API endpoints + validation + error handling
+- [x] API endpoints + validation + error handling
 - [ ] React app: structure, API layer, error boundary
 - [x] Functional suite (compose `db-test`, real PostgreSQL) + unit tests — delivered with the domain model; grows with each API unit
 - [ ] Tooling & CI: PHPStan, PHP-CS-Fixer, GitHub Actions pipeline

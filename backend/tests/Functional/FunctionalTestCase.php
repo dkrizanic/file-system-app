@@ -8,11 +8,11 @@ use App\Contract\ItemRepositoryInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
-use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
+use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
 
-abstract class FunctionalTestCase extends KernelTestCase
+abstract class FunctionalTestCase extends WebTestCase
 {
     private static bool $migrationsExecuted = false;
 
@@ -20,7 +20,7 @@ abstract class FunctionalTestCase extends KernelTestCase
 
     protected function setUp(): void
     {
-        self::bootKernel();
+        $this->boot();
 
         $this->connection = self::getContainer()->get('doctrine')->getConnection();
 
@@ -80,5 +80,10 @@ abstract class FunctionalTestCase extends KernelTestCase
         \assert($counter instanceof QueryCounter);
 
         return $counter;
+    }
+
+    protected function boot(): void
+    {
+        self::bootKernel();
     }
 }
