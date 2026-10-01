@@ -11,7 +11,7 @@ final class ListItemsEndpointTest extends ApiTestCase
 {
     #[Test]
     #[TestDox('Listing a folder returns folders first, then files, with page metadata')]
-    public function list_returns_folders_first_then_files_with_metadata(): void
+    public function listReturnsFoldersFirstThenFilesWithMetadata(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $this->createFileAt($folder->id, 'zebra');
@@ -24,15 +24,24 @@ final class ListItemsEndpointTest extends ApiTestCase
         self::assertSame(200, $response->getStatusCode());
 
         $page = $this->decode($response);
+        $items = $this->pageItems($page);
+
+        $labels = [];
+        foreach ($items as $item) {
+            self::assertIsString($item['type']);
+            self::assertIsString($item['name']);
+            $labels[] = $item['type'].' '.$item['name'];
+        }
+
         self::assertSame(
             ['folder alpha', 'folder Zeta', 'file Apple', 'file zebra'],
-            array_map(static fn (array $item): string => $item['type'].' '.$item['name'], $page['items']),
+            $labels,
         );
         self::assertSame(4, $page['total']);
         self::assertSame(50, $page['limit']);
         self::assertSame(0, $page['offset']);
 
-        foreach ($page['items'] as $item) {
+        foreach ($items as $item) {
             self::assertSame(['id', 'type', 'name', 'parentId'], array_keys($item));
             self::assertSame($folder->id->toRfc4122(), $item['parentId']);
         }
@@ -40,7 +49,7 @@ final class ListItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Listing respects limit and offset and keeps the order stable across pages')]
-    public function list_paginates_stably(): void
+    public function listPaginatesStably(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $names = [];
@@ -53,9 +62,9 @@ final class ListItemsEndpointTest extends ApiTestCase
         $second = $this->decode($this->request('GET', '/api/folders/'.$folder->id->toRfc4122().'/items?limit=2&offset=2'));
         $third = $this->decode($this->request('GET', '/api/folders/'.$folder->id->toRfc4122().'/items?limit=2&offset=4'));
 
-        self::assertSame(['f1', 'f2'], array_column($first['items'], 'name'));
-        self::assertSame(['f3', 'f4'], array_column($second['items'], 'name'));
-        self::assertSame(['f5'], array_column($third['items'], 'name'));
+        self::assertSame(['f1', 'f2'], array_column($this->pageItems($first), 'name'));
+        self::assertSame(['f3', 'f4'], array_column($this->pageItems($second), 'name'));
+        self::assertSame(['f5'], array_column($this->pageItems($third), 'name'));
         self::assertSame(5, $first['total']);
         self::assertSame(2, $first['limit']);
         self::assertSame(2, $second['offset']);
@@ -63,7 +72,7 @@ final class ListItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('An offset past the end returns empty items with the true total')]
-    public function offset_past_end_returns_empty_items_with_total(): void
+    public function offsetPastEndReturnsEmptyItemsWithTotal(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $this->createFileAt($folder->id, 'only.txt');
@@ -76,19 +85,19 @@ final class ListItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Listing the root shows top-level items')]
-    public function listing_root_shows_top_level_items(): void
+    public function listingRootShowsTopLevelItems(): void
     {
         $this->createFolderAt(null, 'Top');
 
         $page = $this->decode($this->request('GET', '/api/folders/'.$this->rootId()->toRfc4122().'/items'));
 
         self::assertSame(1, $page['total']);
-        self::assertSame('Top', $page['items'][0]['name']);
+        self::assertSame('Top', $this->pageItems($page)[0]['name']);
     }
 
     #[Test]
     #[TestDox('An empty folder lists an empty page with a zero total')]
-    public function empty_folder_lists_empty_page(): void
+    public function emptyFolderListsEmptyPage(): void
     {
         $folder = $this->createFolderAt(null, 'Empty');
 
@@ -100,7 +109,7 @@ final class ListItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('An unknown folder id is a 404 envelope')]
-    public function unknown_folder_returns_404(): void
+    public function unknownFolderReturns404(): void
     {
         $error = $this->errorEnvelope(
             $this->request('GET', '/api/folders/01890a5d-ac96-774b-bcce-b302099a8057/items'),
@@ -113,7 +122,7 @@ final class ListItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A file id addressed as a folder is a 404')]
-    public function file_addressed_as_folder_returns_404(): void
+    public function fileAddressedAsFolderReturns404(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes.txt');
@@ -127,7 +136,7 @@ final class ListItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A malformed folder id path is a 404')]
-    public function malformed_folder_id_returns_404(): void
+    public function malformedFolderIdReturns404(): void
     {
         $response = $this->request('GET', '/api/folders/not-a-uuid/items');
 
@@ -136,7 +145,7 @@ final class ListItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Pagination inputs outside their range are 400 validation failures')]
-    public function invalid_pagination_returns_400(): void
+    public function invalidPaginationReturns400(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $uri = '/api/folders/'.$folder->id->toRfc4122().'/items';
@@ -149,7 +158,7 @@ final class ListItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Listing runs a constant number of queries')]
-    public function listing_uses_constant_queries(): void
+    public function listingUsesConstantQueries(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $this->createFileAt($folder->id, 'notes.txt');

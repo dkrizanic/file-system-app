@@ -11,7 +11,7 @@ final class SuggestionsEndpointTest extends ApiTestCase
 {
     #[Test]
     #[TestDox('Suggestions return at most ten files ordered by normalized name, each with its path')]
-    public function suggestions_return_top_files_ordered_with_paths(): void
+    public function suggestionsReturnTopFilesOrderedWithPaths(): void
     {
         $folder = $this->createFolderAt(null, 'reports');
         $expected = [];
@@ -24,12 +24,13 @@ final class SuggestionsEndpointTest extends ApiTestCase
         $this->createFolderAt($folder->id, 'rep-folder');
 
         $payload = $this->decode($this->request('GET', '/api/suggestions?prefix=Rep'));
+        $suggestions = $this->pageItems($payload);
 
         self::assertSame(['items'], array_keys($payload));
-        self::assertSame($expected, array_column($payload['items'], 'id'));
-        self::assertSame('rep-01', $payload['items'][0]['name']);
+        self::assertSame($expected, array_column($suggestions, 'id'));
+        self::assertSame('rep-01', $suggestions[0]['name']);
 
-        foreach ($payload['items'] as $suggestion) {
+        foreach ($suggestions as $suggestion) {
             self::assertSame(['id', 'name', 'parentPath'], array_keys($suggestion));
             self::assertSame(
                 [
@@ -43,7 +44,7 @@ final class SuggestionsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Suggestions match by prefix, not substring')]
-    public function suggestions_use_prefix_matching_only(): void
+    public function suggestionsUsePrefixMatchingOnly(): void
     {
         $folder = $this->createFolderAt(null, 'A');
         $this->createFileAt($folder->id, 'invoices-2026');
@@ -51,13 +52,13 @@ final class SuggestionsEndpointTest extends ApiTestCase
 
         $payload = $this->decode($this->request('GET', '/api/suggestions?prefix=INVOICES'));
 
-        self::assertCount(1, $payload['items']);
-        self::assertSame('invoices-2026', $payload['items'][0]['name']);
+        self::assertCount(1, $this->pageItems($payload));
+        self::assertSame('invoices-2026', $this->pageItems($payload)[0]['name']);
     }
 
     #[Test]
     #[TestDox('LIKE wildcards in the prefix match literally')]
-    public function like_wildcards_match_literally(): void
+    public function likeWildcardsMatchLiterally(): void
     {
         $folder = $this->createFolderAt(null, 'A');
         $underscore = $this->createFileAt($folder->id, 'a_b');
@@ -67,13 +68,13 @@ final class SuggestionsEndpointTest extends ApiTestCase
         $byUnderscore = $this->decode($this->request('GET', '/api/suggestions?prefix=a_'));
         $byPercent = $this->decode($this->request('GET', '/api/suggestions?prefix=a%25'));
 
-        self::assertSame([$underscore->id->toRfc4122()], array_column($byUnderscore['items'], 'id'));
-        self::assertSame([$percent->id->toRfc4122()], array_column($byPercent['items'], 'id'));
+        self::assertSame([$underscore->id->toRfc4122()], array_column($this->pageItems($byUnderscore), 'id'));
+        self::assertSame([$percent->id->toRfc4122()], array_column($this->pageItems($byPercent), 'id'));
     }
 
     #[Test]
     #[TestDox('A blank or missing prefix returns an empty suggestion list')]
-    public function blank_prefix_returns_empty_list(): void
+    public function blankPrefixReturnsEmptyList(): void
     {
         $folder = $this->createFolderAt(null, 'A');
         $this->createFileAt($folder->id, 'report');
@@ -88,7 +89,7 @@ final class SuggestionsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Zero suggestions are an empty list, never an error')]
-    public function zero_suggestions_return_empty_list(): void
+    public function zeroSuggestionsReturnEmptyList(): void
     {
         $payload = $this->decode($this->request('GET', '/api/suggestions?prefix=zzz'));
 
@@ -97,7 +98,7 @@ final class SuggestionsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Suggestions run in a single query')]
-    public function suggestions_use_one_query(): void
+    public function suggestionsUseOneQuery(): void
     {
         $folder = $this->createFolderAt(null, 'A');
         $this->createFileAt($folder->id, 'report');

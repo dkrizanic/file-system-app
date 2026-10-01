@@ -12,7 +12,7 @@ final class DeleteItemEndpointTest extends ApiTestCase
 {
     #[Test]
     #[TestDox('Deleting a file returns 204 with an empty body and removes it from the listing')]
-    public function delete_file_returns_204_and_removes_file(): void
+    public function deleteFileReturns204AndRemovesFile(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes.txt');
@@ -28,7 +28,7 @@ final class DeleteItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A deleted file name can be recreated in the same folder')]
-    public function deleted_file_name_can_be_recreated(): void
+    public function deletedFileNameCanBeRecreated(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes.txt');
@@ -41,7 +41,7 @@ final class DeleteItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Deleting a folder removes its whole subtree')]
-    public function delete_folder_removes_subtree(): void
+    public function deleteFolderRemovesSubtree(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $nested = $this->createFolderAt($folder->id, 'Invoices');
@@ -53,12 +53,12 @@ final class DeleteItemEndpointTest extends ApiTestCase
         $this->errorEnvelope($this->request('GET', $this->itemUri($file->id)), 404, 'not_found');
 
         $page = $this->decode($this->request('GET', '/api/folders/'.$this->rootId()->toRfc4122().'/items'));
-        self::assertSame([], array_column($page['items'], 'id'));
+        self::assertSame([], array_column($this->pageItems($page), 'id'));
     }
 
     #[Test]
     #[TestDox('Deleting an unknown item is a 404')]
-    public function delete_unknown_item_returns_404(): void
+    public function deleteUnknownItemReturns404(): void
     {
         $this->errorEnvelope(
             $this->request('DELETE', $this->itemUri(Uuid::fromString('01890a5d-ac96-774b-bcce-b302099a8057'))),
@@ -69,7 +69,7 @@ final class DeleteItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Deleting the root is a 400 with an id detail and leaves the tree intact')]
-    public function delete_root_returns_400_and_keeps_tree(): void
+    public function deleteRootReturns400AndKeepsTree(): void
     {
         $this->createFolderAt(null, 'Work');
 
@@ -87,7 +87,7 @@ final class DeleteItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Deleting runs a constant number of queries')]
-    public function delete_uses_constant_queries(): void
+    public function deleteUsesConstantQueries(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $this->entityManager()->clear();

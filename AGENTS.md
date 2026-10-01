@@ -232,17 +232,18 @@ could be verified, so the suite uses a compose-managed throwaway test database.
   `.env.example` stays in sync with `.env`.
 - Before every push: the full test suite is green.
 
-## 8. Tooling & CI
+## 8. Tooling
 
 - **PHPStan** at the highest practical level, zero unresolved issues — static
   analysis is part of done, not a nice-to-have.
-- **PHP-CS-Fixer** with a committed ruleset (`.php-cs-fixer.dist.php`); CI fails on
-  a formatting diff. No hand-formatted code, no editor-style debates.
-- **CI: GitHub Actions** runs on every push — Composer/npm install, PHPStan,
-  PHP-CS-Fixer check, frontend build, and the full Testcontainers suite (Docker is
-  available on hosted runners).
-- Code that does not pass locally does not get committed; CI is the backstop, not
-  the first line of defense.
+- **PHP-CS-Fixer** with a committed ruleset (`.php-cs-fixer.dist.php`); the check
+  must pass on the committed tree. No hand-formatted code, no editor-style
+  debates.
+- Both gates run locally before every push (`docker compose exec app composer
+  phpstan` and `composer cs-check`). There is no CI to catch what was skipped:
+  GitHub Actions is out of scope (D16), so these local gates and the test suite
+  are the whole enforcement layer.
+- Code that does not pass locally does not get committed.
 
 ## 9. Docker & environments
 
@@ -322,6 +323,7 @@ additional BMAD modules without asking.
 | D13 | No `bmad-ticket` slicing; `bmad-build` consumes the PRD and architecture spine directly, one feature branch per work unit | Ticket artifacts add ceremony without payoff at this size; revisit if sessions or contributors multiply | 2026-10-01 |
 | D14 | Test-database fallback applied: compose-managed throwaway `db-test` (root `compose.test.yaml`, `test` profile, tmpfs, host port 5433) replaces Testcontainers | No stable, maintained Testcontainers client for PHP could be verified; the §6 fallback applies. Trade-off stated in the README | 2026-10-01 |
 | D15 | Cascade delete rides the `parent_id` FK `ON DELETE CASCADE` inside the service transaction; spine AD-5 amended (same id) | PostgreSQL removes the subtree atomically in one statement; recursive CTEs remain for scoped search and ancestor paths | 2026-10-01 |
+| D16 | CI on GitHub Actions is out of scope — nothing lives under `.github/`; the local gates (PHPStan, PHP-CS-Fixer, the test suite) are the whole enforcement layer | User decision (2026-10-01); supersedes the CI part of D7. AGENTS.md §8 promises no CI | 2026-10-01 |
 
 ### Project status
 
@@ -334,7 +336,7 @@ additional BMAD modules without asking.
 - [x] API endpoints + validation + error handling
 - [x] React app: structure, API layer, error boundary
 - [x] Functional suite (compose `db-test`, real PostgreSQL) + unit tests — delivered with the domain model; grows with each API unit
-- [ ] Tooling & CI: PHPStan, PHP-CS-Fixer, GitHub Actions pipeline
+- [x] Tooling: PHPStan and PHP-CS-Fixer as local gates — no CI by decision (D16)
 - [ ] README polish: assumptions, trade-offs, improvements
 
 ## 12. Task brief (verbatim)

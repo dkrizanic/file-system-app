@@ -7,10 +7,12 @@ namespace App\Tests\Functional;
 use App\Contract\ItemRepositoryInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
+use Symfony\Component\HttpKernel\KernelInterface;
 
 abstract class FunctionalTestCase extends WebTestCase
 {
@@ -22,9 +24,14 @@ abstract class FunctionalTestCase extends WebTestCase
     {
         $this->boot();
 
-        $this->connection = self::getContainer()->get('doctrine')->getConnection();
+        $registry = self::getContainer()->get('doctrine');
+        \assert($registry instanceof ManagerRegistry);
+        $connection = $registry->getConnection();
+        \assert($connection instanceof Connection);
+        $this->connection = $connection;
 
         if (!self::$migrationsExecuted) {
+            \assert(self::$kernel instanceof KernelInterface);
             $application = new Application(self::$kernel);
             $application->setAutoExit(false);
             $exitCode = $application->run(
@@ -35,7 +42,7 @@ abstract class FunctionalTestCase extends WebTestCase
                 ]),
                 new NullOutput(),
             );
-            if ($exitCode !== 0) {
+            if (0 !== $exitCode) {
                 throw new \RuntimeException(sprintf('Preparing the test database failed (exit code %d).', $exitCode));
             }
             self::$migrationsExecuted = true;

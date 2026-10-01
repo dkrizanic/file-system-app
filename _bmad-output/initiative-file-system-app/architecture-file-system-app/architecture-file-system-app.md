@@ -46,7 +46,7 @@ From `AGENTS.md` and the PRD — binding, read-only; this spine does not re-deci
 | Layering + `src/Contract/` + `src/Mapper/` + DTO Read/Write | AGENTS.md §3 | All backend code |
 | API conventions: camelCase JSON, error envelope vocabulary, status table (incl. POST 404, 409 with field `details`), pagination metadata | AGENTS.md §4 | Every endpoint |
 | Testing: real PostgreSQL via the compose `test`-profile `db-test` container, backend only; unit tests for validation | AGENTS.md §6, D6/D14 | Test suite |
-| PHPStan / PHP-CS-Fixer / GitHub Actions CI | AGENTS.md §8, D7 | Tooling |
+| PHPStan / PHP-CS-Fixer as local gates — no CI (D16) | AGENTS.md §8, D7, D16 | Tooling |
 | Performance principles: indexes in migrations, no N+1, query-count assertions, paginated collections | AGENTS.md §5 | Data access layer |
 | FR/NFR contracts incl. normalized-name matching, pagination 50/100, atomic cascade delete | PRD §4 | All features |
 
@@ -251,7 +251,9 @@ folders first) · partial prefix index per AD-7.
   worst-case shared prefix) — a dev tool, not CI.
 - Doctrine migration naming, fixture/seed strategy (beyond the root seed) —
   scaffold-time detail.
-- CI workflow steps beyond AGENTS.md §8 — ticketed with the pipeline.
+- CI workflow — out of scope per D16 (2026-10-01); the local gates in
+  AGENTS.md §8 (PHPStan, PHP-CS-Fixer, the test suite) are the whole
+  enforcement layer.
 - FrankenPHP worker mode / opcache tuning — the debug take-home doesn't need it.
 - Redis — explicitly absent (D2).
 - Frontend component breakdown — owned by the SPA build per AGENTS.md §3.

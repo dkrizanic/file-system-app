@@ -18,7 +18,7 @@ final class ItemNameValidator extends ConstraintValidator
             throw new \InvalidArgumentException(\sprintf('Expected an instance of %s, got %s.', ItemName::class, get_debug_type($constraint)));
         }
 
-        if ($value === null) {
+        if (null === $value) {
             return;
         }
 
@@ -28,7 +28,7 @@ final class ItemNameValidator extends ConstraintValidator
 
         $name = trim($value);
 
-        if ($name === '') {
+        if ('' === $name) {
             $this->context->buildViolation($constraint->blankMessage)->addViolation();
 
             return;
@@ -44,11 +44,11 @@ final class ItemNameValidator extends ConstraintValidator
             $this->context->buildViolation($constraint->reservedMessage)->addViolation();
         }
 
-        if (strpbrk($name, '/\\') !== false) {
+        if (false !== strpbrk($name, '/\\')) {
             $this->context->buildViolation($constraint->slashMessage)->addViolation();
         }
 
-        if (preg_match('/\p{Cc}/u', $name) === 1) {
+        if (1 === preg_match('/\p{Cc}/u', $name)) {
             $this->context->buildViolation($constraint->controlCharMessage)->addViolation();
         }
     }

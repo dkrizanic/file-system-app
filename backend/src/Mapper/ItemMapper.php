@@ -80,6 +80,8 @@ final class ItemMapper
 
     /**
      * @param array{items: list<Item>, total: int} $children
+     *
+     * @return Page<ItemSummary>
      */
     public function toSummaryPage(array $children, int $limit, int $offset): Page
     {
@@ -93,6 +95,8 @@ final class ItemMapper
 
     /**
      * @param array{items: list<array{id: Uuid, name: string, parentId: ?Uuid, path: list<array{id: Uuid, name: string}>}>, total: int} $matches
+     *
+     * @return Page<ItemDetail>
      */
     public function toDetailPage(array $matches, int $limit, int $offset): Page
     {

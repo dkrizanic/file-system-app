@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\DTO\Write;
 
 use App\Validator\ItemName;
-use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Validator\Constraints as Assert;
 
 final class CreateFile
 {

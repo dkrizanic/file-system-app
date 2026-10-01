@@ -64,6 +64,26 @@ context: ['{project-root}/AGENTS.md', '{project-root}/_bmad-output/initiative-fi
 
 ## Plan Change Log
 
+- 2026-10-01 (implementation) — Branch named `feature/tooling-ci`, not the
+  planned `chore/phpstan-cs-fixer-gates`: the executing instruction for this
+  unit fixed that name; same base (main), same content.
+- 2026-10-01 (implementation) — `friendsofphp/php-cs-fixer` does carry a Flex
+  recipe ("Configuring friendsofphp/php-cs-fixer (>=3.39)" in the
+  `composer require` output), contrary to the Design Note. The recipe run
+  forced `backend/symfony.lock` to gain entries for both dev packages and
+  scaffolded `.php-cs-fixer.dist.php` plus the `.gitignore` cache lines.
+  Allowed by the plan's own carve-out (the lock changes only when a recipe
+  run forces it — one did); no hand edits. The Verification command
+  `git diff main -- backend/symfony.lock` therefore shows the recipe entry
+  instead of nothing.
+- 2026-10-01 (implementation) — One narrow `ignoreErrors` entry was needed,
+  the plan's pre-approved fallback case: rule `method.unused` (identifier)
+  on `src/Kernel.php` only. Symfony's KernelTrait calls `getAllowedEnvs()`
+  from its own private method, which the skeleton's `App\Kernel` overrides —
+  PHPStan cannot see the call through the private trait override, and the
+  method cannot be deleted without dropping the env whitelist the framework
+  enforces. No other rule muted anywhere; no baseline; level stayed `max`.
+
 ## Review Triage Log
 
 ## Design Notes

@@ -29,7 +29,7 @@ final class ApiExceptionListener
     {
         $response = $this->responseFor($event->getThrowable());
 
-        if ($response !== null) {
+        if (null !== $response) {
             $event->setResponse($response);
         }
     }
@@ -38,7 +38,7 @@ final class ApiExceptionListener
     {
         $validationFailure = $this->validationFailureIn($throwable);
 
-        if ($validationFailure !== null) {
+        if (null !== $validationFailure) {
             return $this->envelope(
                 Response::HTTP_BAD_REQUEST,
                 'validation_failed',
@@ -79,7 +79,7 @@ final class ApiExceptionListener
         }
 
         if ($throwable instanceof HttpExceptionInterface) {
-            if ($throwable->getStatusCode() === Response::HTTP_BAD_REQUEST) {
+            if (Response::HTTP_BAD_REQUEST === $throwable->getStatusCode()) {
                 return $this->envelope(
                     Response::HTTP_BAD_REQUEST,
                     'validation_failed',
@@ -105,7 +105,7 @@ final class ApiExceptionListener
 
     private function validationFailureIn(\Throwable $throwable): ?ValidationFailedException
     {
-        for ($current = $throwable; $current !== null; $current = $current->getPrevious()) {
+        for ($current = $throwable; null !== $current; $current = $current->getPrevious()) {
             if ($current instanceof ValidationFailedException) {
                 return $current;
             }
@@ -124,7 +124,7 @@ final class ApiExceptionListener
         foreach ($failure->getViolations() as $violation) {
             $details[] = [
                 'field' => $violation->getPropertyPath(),
-                'message' => strtr($violation->getMessage(), $violation->getParameters()),
+                'message' => strtr((string) $violation->getMessage(), $violation->getParameters()),
             ];
         }
 
@@ -141,7 +141,7 @@ final class ApiExceptionListener
             'message' => $message,
         ];
 
-        if ($details !== null) {
+        if (null !== $details) {
             $error['details'] = $details;
         }
 

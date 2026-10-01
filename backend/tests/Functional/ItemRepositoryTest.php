@@ -17,7 +17,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 {
     #[Test]
     #[TestDox('Persisting an item stores the case-folded, NFC-normalized name')]
-    public function persist_item_stores_normalized_name(): void
+    public function persistItemStoresNormalizedName(): void
     {
         $folder = $this->createFolder('Work', $this->root());
 
@@ -42,7 +42,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('A sibling whose name differs only in casing violates the unique constraint')]
-    public function duplicate_sibling_name_violates_unique_constraint(): void
+    public function duplicateSiblingNameViolatesUniqueConstraint(): void
     {
         $folder = $this->createFolder('A', $this->root());
         $this->createFolder('notes', $folder);
@@ -54,7 +54,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('Children are listed folders-first, then by normalized name, in two constant queries')]
-    public function find_children_orders_folders_first_then_normalized_name(): void
+    public function findChildrenOrdersFoldersFirstThenNormalizedName(): void
     {
         $folder = $this->createFolder('A', $this->root());
         $this->createFile('zebra', $folder);
@@ -81,7 +81,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('Children pages are stable and an offset past the end is empty with the right total')]
-    public function find_children_paginates_stably_across_pages(): void
+    public function findChildrenPaginatesStablyAcrossPages(): void
     {
         $folder = $this->createFolder('A', $this->root());
         $names = [];
@@ -97,22 +97,17 @@ final class ItemRepositoryTest extends FunctionalTestCase
         $pageThree = $this->repository()->findChildren($folder->getId(), 6, 12);
         $pastEnd = $this->repository()->findChildren($folder->getId(), 6, 100);
 
-        $namesOf = static fn (array $page): array => array_map(
-            static fn (Item $item): string => $item->getName(),
-            $page['items'],
-        );
-
-        self::assertSame($names, $namesOf($all));
-        self::assertSame(\array_slice($names, 0, 6), $namesOf($pageOne));
-        self::assertSame(\array_slice($names, 6, 6), $namesOf($pageTwo));
-        self::assertSame(\array_slice($names, 12, 3), $namesOf($pageThree));
+        self::assertSame($names, $this->namesOf($all));
+        self::assertSame(\array_slice($names, 0, 6), $this->namesOf($pageOne));
+        self::assertSame(\array_slice($names, 6, 6), $this->namesOf($pageTwo));
+        self::assertSame(\array_slice($names, 12, 3), $this->namesOf($pageThree));
         self::assertSame([], $pastEnd['items']);
         self::assertSame(15, $pastEnd['total']);
     }
 
     #[Test]
     #[TestDox('The ancestor path is root-first, excludes the item itself, in one query')]
-    public function find_ancestor_path_returns_root_first_excluding_item(): void
+    public function findAncestorPathReturnsRootFirstExcludingItem(): void
     {
         $levelOne = $this->createFolder('level-1', $this->root());
         $levelTwo = $this->createFolder('level-2', $levelOne);
@@ -134,14 +129,14 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('The root has no ancestors')]
-    public function find_ancestor_path_of_root_is_empty(): void
+    public function findAncestorPathOfRootIsEmpty(): void
     {
         self::assertSame([], $this->repository()->findAncestorPath($this->rootId()));
     }
 
     #[Test]
     #[TestDox('Suggestions cap at 10 files ordered by normalized name, folders never match, in one query')]
-    public function find_suggestions_returns_top_files_in_order(): void
+    public function findSuggestionsReturnsTopFilesInOrder(): void
     {
         $folder = $this->createFolder('reports', $this->root());
         $expectedIds = [];
@@ -169,7 +164,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('A blank prefix matches nothing')]
-    public function find_suggestions_with_blank_prefix_returns_nothing(): void
+    public function findSuggestionsWithBlankPrefixReturnsNothing(): void
     {
         $folder = $this->createFolder('A', $this->root());
         $this->createFile('report', $folder);
@@ -179,7 +174,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('LIKE wildcards in the prefix are matched literally')]
-    public function find_suggestions_escapes_like_wildcards(): void
+    public function findSuggestionsEscapesLikeWildcards(): void
     {
         $folder = $this->createFolder('A', $this->root());
         $underscore = $this->createFile('a_b', $folder);
@@ -196,7 +191,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('Deleting a folder removes its whole subtree in one flush')]
-    public function delete_folder_cascades_to_entire_subtree(): void
+    public function deleteFolderCascadesToEntireSubtree(): void
     {
         $folder = $this->createFolder('A', $this->root());
         $subFolder = $this->createFolder('sub', $folder);
@@ -218,12 +213,13 @@ final class ItemRepositoryTest extends FunctionalTestCase
             ['ids' => ArrayParameterType::STRING],
         );
 
+        self::assertIsNumeric($survivors);
         self::assertSame(0, (int) $survivors);
     }
 
     #[Test]
     #[TestDox('The root row is seeded with the fixed id and a NULL parent')]
-    public function root_row_is_seeded_with_fixed_id_and_null_parent(): void
+    public function rootRowIsSeededWithFixedIdAndNullParent(): void
     {
         $root = $this->repository()->find($this->rootId());
 
@@ -235,7 +231,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('The partial unique index blocks a second NULL-parent row')]
-    public function partial_unique_index_blocks_second_root(): void
+    public function partialUniqueIndexBlocksSecondRoot(): void
     {
         $this->expectException(UniqueConstraintViolationException::class);
 
@@ -247,7 +243,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('Exact search matches files case-insensitively across the whole tree, with paths, in one query')]
-    public function find_by_exact_name_matches_files_with_paths_globally(): void
+    public function findByExactNameMatchesFilesWithPathsGlobally(): void
     {
         $folderA = $this->createFolder('A', $this->root());
         $folderB = $this->createFolder('B', $this->root());
@@ -283,7 +279,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('Exact search reports the full total while returning one page')]
-    public function find_by_exact_name_paginates_with_full_total(): void
+    public function findByExactNamePaginatesWithFullTotal(): void
     {
         $folder = $this->createFolder('A', $this->root());
         $this->createFile('dup', $folder);
@@ -297,7 +293,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('A folder scope restricts exact search to that subtree, at any depth')]
-    public function find_by_exact_name_scopes_to_folder_subtree(): void
+    public function findByExactNameScopesToFolderSubtree(): void
     {
         $scope = $this->createFolder('scope', $this->root());
         $inside = $this->createFile('dup', $scope);
@@ -334,7 +330,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('A search offset past the end returns an empty page with the full total')]
-    public function find_by_exact_name_offset_past_end_returns_empty_page_with_full_total(): void
+    public function findByExactNameOffsetPastEndReturnsEmptyPageWithFullTotal(): void
     {
         $folder = $this->createFolder('A', $this->root());
         $this->createFile('dup', $folder);
@@ -348,7 +344,7 @@ final class ItemRepositoryTest extends FunctionalTestCase
 
     #[Test]
     #[TestDox('Exact search never returns folders')]
-    public function find_by_exact_name_excludes_folders(): void
+    public function findByExactNameExcludesFolders(): void
     {
         $folder = $this->createFolder('report', $this->root());
         $file = $this->createFile('report', $folder);
@@ -403,15 +399,28 @@ final class ItemRepositoryTest extends FunctionalTestCase
     }
 
     /**
+     * @param array{items: list<Item>} $page
+     *
+     * @return list<string>
+     */
+    private function namesOf(array $page): array
+    {
+        return array_map(
+            static fn (Item $item): string => $item->getName(),
+            $page['items'],
+        );
+    }
+
+    /**
      * @param list<array{id: Uuid, ...}> $matches
      *
      * @return list<Uuid>
      */
     private function idsOf(array $matches): array
     {
-        return array_values(array_map(
+        return array_map(
             static fn (array $match): Uuid => $match['id'],
             $matches,
-        ));
+        );
     }
 }

@@ -12,8 +12,10 @@ validation and a uniform error envelope, and a real PHPUnit suite (unit +
 functional, including HTTP-level tests) against a throwaway PostgreSQL
 container. The React SPA and the nginx origin are in place too: folder
 browsing, create, rename, delete, exact search and typeahead suggestions,
-talking to that API on one origin. Tooling, CI and the final README polish
-are the next units.
+talking to that API on one origin. The local quality gates — PHPStan at
+level max and PHP-CS-Fixer — run inside the app container; CI is
+deliberately out of scope (see Known limitations). The final README polish
+is the next unit.
 
 ## What it does
 
@@ -155,6 +157,12 @@ docker compose exec app php bin/phpunit
 
 # stop the test database when done
 docker compose -f compose.yaml -f compose.test.yaml --profile test stop db-test
+
+# static analysis: PHPStan at level max, zero errors, over src/tests/migrations
+docker compose exec app composer phpstan
+
+# code style: check only (composer cs-fix applies the ruleset)
+docker compose exec app composer cs-check
 ```
 
 The first test of a run applies the migrations to `db-test` automatically;
@@ -165,8 +173,8 @@ constant number of statements (for example, all-scope search and suggestions
 are exactly one query each; listing is the page query plus its count).
 
 There are no frontend tests (D6): the testing effort goes to the backend per
-the project decision. The frontend gates are the strict `tsc -b && vite
-build` above (run in CI once the pipeline unit lands).
+the project decision. The frontend gate is the strict `tsc -b && vite
+build` above.
 
 Host port 5433 mirrors `db-test` for psql debugging
 (`psql postgresql://app:app@localhost:5433/app_test`).
@@ -247,7 +255,16 @@ codes and the shapes above are the contract the React frontend mirrors
 
 ## Known limitations & trade-offs
 
-- No CI yet — the next planned unit, not an omission by accident.
+- **No CI (D16).** GitHub Actions is deliberately out of scope — a user
+  decision (2026-10-01), not an omission by accident: nothing lives under
+  `.github/`, so no machine re-runs the checks on the remote. What replaces
+  it: the local gates above (`composer phpstan`, `composer cs-check`, the
+  test suite) run before every push. The trade-off is that a skipped gate is
+  caught by no machine — the enforcement is convention, not automation.
+- `backend/symfony.lock` intentionally references scaffolding files that were
+  deleted from the repo after scaffolding. Leave the file alone: it changes
+  only when a Composer/Flex recipe run forces it, and never run `composer
+  recipes:update` against it without pruning those references first.
 - Status codes outside the envelope's vocabulary (unknown route 404, 405, 415)
   keep Symfony's default HTML error pages; the SPA never triggers them, so
   they stay outside the JSON contract on purpose.
@@ -265,8 +282,8 @@ codes and the shapes above are the contract the React frontend mirrors
   above instead of being spawned per test run.
 - **No frontend tests (D6).** The SPA is covered by the strict TypeScript
   build gate only; the interactive flows are verified by hand.
-- **No ESLint/Prettier yet** — lint arrives with the CI unit; strict `tsc`
-  covers the most valuable part in the meantime.
+- **No ESLint/Prettier yet** — strict `tsc` covers the most valuable part in
+  the meantime.
 - Doctrine's schema tool must never run against these databases: migrations
   own the schema. The ORM mapping intentionally does not declare the
   partial indexes, the `COLLATE "C"` column and `text_pattern_ops` — they

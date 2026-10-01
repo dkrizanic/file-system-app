@@ -10,7 +10,7 @@ final class NameNormalizer
 {
     public function normalize(string $name): string
     {
-        if (\Normalizer::normalize($name) === false) {
+        if (false === \Normalizer::normalize($name)) {
             throw new \InvalidArgumentException('A name cannot be normalized because it is not valid UTF-8.');
         }
 
@@ -30,7 +30,7 @@ final class NameNormalizer
 
         $normalized = \Normalizer::normalize($folded, \Normalizer::FORM_C);
 
-        if ($normalized === false) {
+        if (!\is_string($normalized)) {
             throw new \InvalidArgumentException('A name cannot be normalized because it is not valid UTF-8.');
         }
 

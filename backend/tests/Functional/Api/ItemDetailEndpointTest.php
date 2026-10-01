@@ -12,7 +12,7 @@ final class ItemDetailEndpointTest extends ApiTestCase
 {
     #[Test]
     #[TestDox('A file detail carries its root-first parent path without the item itself')]
-    public function file_detail_carries_parent_path(): void
+    public function fileDetailCarriesParentPath(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $nested = $this->createFolderAt($folder->id, 'Invoices');
@@ -39,7 +39,7 @@ final class ItemDetailEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A root-level folder has only the root in its path')]
-    public function root_level_folder_path_is_only_root(): void
+    public function rootLevelFolderPathIsOnlyRoot(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
 
@@ -54,7 +54,7 @@ final class ItemDetailEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('The root itself has an empty path')]
-    public function root_detail_has_empty_path(): void
+    public function rootDetailHasEmptyPath(): void
     {
         $detail = $this->decode($this->request('GET', $this->itemUri($this->rootId())));
 
@@ -66,7 +66,7 @@ final class ItemDetailEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('An unknown item id is a 404 envelope without details')]
-    public function unknown_item_returns_404(): void
+    public function unknownItemReturns404(): void
     {
         $error = $this->errorEnvelope(
             $this->request('GET', $this->itemUri(Uuid::fromString('01890a5d-ac96-774b-bcce-b302099a8057'))),
@@ -79,7 +79,7 @@ final class ItemDetailEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Fetching a detail runs a constant number of queries')]
-    public function detail_uses_constant_queries(): void
+    public function detailUsesConstantQueries(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes.txt');

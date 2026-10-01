@@ -14,11 +14,12 @@ use Psr\Log\LogLevel;
  */
 final class QueryCounter extends AbstractLogger implements \Countable
 {
+    /** @var int<0, max> */
     private int $queries = 0;
 
     public function log($level, string|\Stringable $message, array $context = []): void
     {
-        if ($level === LogLevel::DEBUG && str_starts_with((string) $message, 'Executing ')) {
+        if (LogLevel::DEBUG === $level && str_starts_with((string) $message, 'Executing ')) {
             ++$this->queries;
         }
     }

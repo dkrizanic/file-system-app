@@ -12,7 +12,7 @@ final class RenameItemEndpointTest extends ApiTestCase
 {
     #[Test]
     #[TestDox('A case-only rename succeeds and updates the stored casing')]
-    public function case_only_rename_updates_casing(): void
+    public function caseOnlyRenameUpdatesCasing(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes');
@@ -28,7 +28,7 @@ final class RenameItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Renaming to the current name is a no-op success')]
-    public function rename_to_own_name_succeeds(): void
+    public function renameToOwnNameSucceeds(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes');
@@ -41,7 +41,7 @@ final class RenameItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Renaming onto a sibling name is a 409 with a name detail')]
-    public function rename_onto_sibling_name_returns_409(): void
+    public function renameOntoSiblingNameReturns409(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes');
@@ -55,7 +55,7 @@ final class RenameItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Renaming an unknown item is a 404')]
-    public function rename_unknown_item_returns_404(): void
+    public function renameUnknownItemReturns404(): void
     {
         $this->errorEnvelope(
             $this->request('PATCH', $this->itemUri(Uuid::fromString('01890a5d-ac96-774b-bcce-b302099a8057')), ['name' => 'X']),
@@ -66,7 +66,7 @@ final class RenameItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Renaming the root is a 400 with an id detail')]
-    public function rename_root_returns_400(): void
+    public function renameRootReturns400(): void
     {
         $error = $this->errorEnvelope(
             $this->request('PATCH', $this->itemUri($this->rootId()), ['name' => 'Home']),
@@ -79,7 +79,7 @@ final class RenameItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('An invalid rename name is a 400 with a name detail')]
-    public function invalid_rename_name_returns_400(): void
+    public function invalidRenameNameReturns400(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes');
@@ -95,16 +95,17 @@ final class RenameItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Search and suggestions reflect the new name after a rename')]
-    public function search_reflects_renamed_name(): void
+    public function searchReflectsRenamedName(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes');
         $this->request('PATCH', $this->itemUri($file->id), ['name' => 'Agenda']);
 
         $page = $this->decode($this->request('GET', '/api/search?name=AGENDA'));
+        $items = $this->pageItems($page);
 
-        self::assertSame([$file->id->toRfc4122()], array_column($page['items'], 'id'));
-        self::assertSame('Agenda', $page['items'][0]['name']);
+        self::assertSame([$file->id->toRfc4122()], array_column($items, 'id'));
+        self::assertSame('Agenda', $items[0]['name']);
 
         $old = $this->decode($this->request('GET', '/api/search?name=notes'));
         self::assertSame(0, $old['total']);
@@ -112,7 +113,7 @@ final class RenameItemEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A malformed rename body is a 400 envelope')]
-    public function malformed_rename_body_returns_400(): void
+    public function malformedRenameBodyReturns400(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes');

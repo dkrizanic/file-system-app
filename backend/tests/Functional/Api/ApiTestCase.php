@@ -64,7 +64,7 @@ abstract class ApiTestCase extends FunctionalTestCase
      */
     protected function request(string $method, string $uri, ?array $body = null): Response
     {
-        return $this->send($method, $uri, $body === null ? null : json_encode($body, JSON_THROW_ON_ERROR));
+        return $this->send($method, $uri, null === $body ? null : json_encode($body, JSON_THROW_ON_ERROR));
     }
 
     protected function requestRaw(string $method, string $uri, string $content): Response
@@ -77,7 +77,26 @@ abstract class ApiTestCase extends FunctionalTestCase
      */
     protected function decode(Response $response): array
     {
-        return json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
+        /** @var array<string, mixed> $payload */
+        $payload = json_decode($response->getContent() ?: '', true, 512, JSON_THROW_ON_ERROR);
+
+        return $payload;
+    }
+
+    /**
+     * @param array<string, mixed> $page
+     *
+     * @return list<array<string, mixed>>
+     */
+    protected function pageItems(array $page): array
+    {
+        $items = $page['items'] ?? null;
+        \assert(\is_array($items));
+
+        /** @var list<array<string, mixed>> $values */
+        $values = array_values($items);
+
+        return $values;
     }
 
     /**
@@ -91,6 +110,7 @@ abstract class ApiTestCase extends FunctionalTestCase
         $payload = $this->decode($response);
         self::assertArrayHasKey('error', $payload);
 
+        /** @var array{code: string, message: string, details?: list<array{field: string, message: string}>} $error */
         $error = $payload['error'];
         self::assertSame($code, $error['code']);
         self::assertNotSame('', $error['message']);

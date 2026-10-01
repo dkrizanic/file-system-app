@@ -16,7 +16,7 @@ final class SearchTermValidator extends ConstraintValidator
             throw new \InvalidArgumentException(\sprintf('Expected an instance of %s, got %s.', SearchTerm::class, get_debug_type($constraint)));
         }
 
-        if ($value === null) {
+        if (null === $value) {
             return;
         }
 
@@ -24,7 +24,7 @@ final class SearchTermValidator extends ConstraintValidator
             throw new UnexpectedValueException($value, 'string');
         }
 
-        if (trim($value) === '') {
+        if ('' === trim($value)) {
             $this->context->buildViolation($constraint->blankMessage)->addViolation();
         }
     }

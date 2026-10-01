@@ -1,0 +1,13 @@
+parameters:
+    level: max
+    paths:
+        - src
+        - tests
+        - migrations
+    ignoreErrors:
+        -
+            # The skeleton's whitelist hook: Symfony's KernelTrait calls
+            # getAllowedEnvs() from its own private method, which this method
+            # overrides — PHPStan cannot see the call through the trait.
+            message: '#Method App\\Kernel::getAllowedEnvs\(\) is unused\.#'
+            path: src/Kernel.php

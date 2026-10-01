@@ -13,7 +13,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Creating a folder at the root returns 201 with the trimmed summary and a Location header')]
-    public function create_folder_at_root_returns_201_with_summary_and_location(): void
+    public function createFolderAtRootReturns201WithSummaryAndLocation(): void
     {
         $response = $this->request('POST', '/api/folders', ['name' => ' Projects ']);
 
@@ -24,6 +24,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
         self::assertSame('Projects', $summary['name']);
         self::assertSame('folder', $summary['type']);
         self::assertSame($this->rootId()->toRfc4122(), $summary['parentId']);
+        self::assertIsString($summary['id']);
         self::assertMatchesRegularExpression('/^[0-9a-f-]{36}$/', $summary['id']);
 
         $location = $response->headers->get('Location');
@@ -39,7 +40,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Creating a folder inside a folder stores that folder as parentId')]
-    public function create_nested_folder_stores_parent(): void
+    public function createNestedFolderStoresParent(): void
     {
         $parent = $this->createFolderAt(null, 'Work');
 
@@ -51,7 +52,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Creating a file returns 201 with a file summary and a Location header')]
-    public function create_file_returns_201_with_file_summary(): void
+    public function createFileReturns201WithFileSummary(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
 
@@ -62,12 +63,13 @@ final class CreateItemsEndpointTest extends ApiTestCase
         self::assertSame('file', $summary['type']);
         self::assertSame('notes.txt', $summary['name']);
         self::assertSame($folder->id->toRfc4122(), $summary['parentId']);
+        self::assertIsString($summary['id']);
         self::assertSame('/api/items/'.$summary['id'], $response->headers->get('Location'));
     }
 
     #[Test]
     #[TestDox('A duplicate sibling folder name is a 409 conflict with a name detail, across types')]
-    public function duplicate_sibling_name_returns_409_across_types(): void
+    public function duplicateSiblingNameReturns409AcrossTypes(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $this->createFileAt($folder->id, 'notes.txt');
@@ -81,7 +83,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A duplicate file name against a sibling folder is a 409 conflict')]
-    public function duplicate_file_name_against_folder_returns_409(): void
+    public function duplicateFileNameAgainstFolderReturns409(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $this->createFolderAt($folder->id, 'archive');
@@ -94,7 +96,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Invalid names are rejected with a 400 envelope carrying a name detail')]
-    public function invalid_names_return_400_with_name_detail(): void
+    public function invalidNamesReturn400WithNameDetail(): void
     {
         $invalid = ['', '   ', str_repeat('a', 256), 'a/b', 'a\\b', '.', '..', "a\u{0007}b"];
 
@@ -108,7 +110,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Creating inside a nonexistent parent is a 404')]
-    public function create_in_nonexistent_parent_returns_404(): void
+    public function createInNonexistentParentReturns404(): void
     {
         $response = $this->request('POST', '/api/folders', ['parentId' => '01890a5d-ac96-774b-bcce-b302099a8057', 'name' => 'Orphan']);
 
@@ -118,7 +120,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Creating inside a file parent is a 400 with a parentId detail')]
-    public function create_in_file_parent_returns_400_with_parent_detail(): void
+    public function createInFileParentReturns400WithParentDetail(): void
     {
         $folder = $this->createFolderAt(null, 'Work');
         $file = $this->createFileAt($folder->id, 'notes.txt');
@@ -131,7 +133,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A missing parentId on a file is a 400 with a parentId detail')]
-    public function create_file_without_parent_returns_400(): void
+    public function createFileWithoutParentReturns400(): void
     {
         $response = $this->request('POST', '/api/files', ['name' => 'notes.txt']);
 
@@ -141,7 +143,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A malformed parentId uuid is a 400 with a parentId detail')]
-    public function malformed_parent_uuid_returns_400(): void
+    public function malformedParentUuidReturns400(): void
     {
         $response = $this->request('POST', '/api/files', ['parentId' => 'not-a-uuid', 'name' => 'notes.txt']);
 
@@ -151,18 +153,18 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Malformed JSON is a 400 envelope without leaking the parse error')]
-    public function malformed_json_returns_400_envelope(): void
+    public function malformedJsonReturns400Envelope(): void
     {
         $response = $this->requestRaw('POST', '/api/folders', '{"name": ');
 
         $error = $this->errorEnvelope($response, 400, 'validation_failed');
         self::assertSame('The request body is invalid.', $error['message']);
-        self::assertSame([], $error['details']);
+        self::assertSame([], $error['details'] ?? null);
     }
 
     #[Test]
     #[TestDox('Unknown JSON fields are ignored')]
-    public function unknown_fields_are_ignored(): void
+    public function unknownFieldsAreIgnored(): void
     {
         $response = $this->request('POST', '/api/folders', ['name' => 'Docs', 'bogus' => 'ignored']);
 
@@ -172,7 +174,7 @@ final class CreateItemsEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Creating a folder costs a constant number of queries')]
-    public function create_folder_uses_constant_queries(): void
+    public function createFolderUsesConstantQueries(): void
     {
         $this->createFolderAt(null, 'Work');
         $this->entityManager()->clear();

@@ -123,6 +123,7 @@ final class ItemRepository implements ItemRepositoryInterface
 
     public function findChildren(Uuid $folderId, int $limit, int $offset): array
     {
+        /** @var list<Item> $items */
         $items = $this->entityManager->createQueryBuilder()
             ->select('i')
             ->from(Item::class, 'i')
@@ -149,6 +150,7 @@ final class ItemRepository implements ItemRepositoryInterface
 
     public function findAncestorPath(Uuid $id): array
     {
+        /** @var list<array{id: string, name: string}> $rows */
         $rows = $this->connection()->fetchAllAssociative(
             self::ANCESTOR_PATH_SQL,
             ['itemId' => $id],
@@ -158,8 +160,8 @@ final class ItemRepository implements ItemRepositoryInterface
         $path = [];
         foreach ($rows as $row) {
             $path[] = [
-                'id' => Uuid::fromString((string) $row['id']),
-                'name' => (string) $row['name'],
+                'id' => Uuid::fromString($row['id']),
+                'name' => $row['name'],
             ];
         }
 
@@ -171,6 +173,7 @@ final class ItemRepository implements ItemRepositoryInterface
         $folderId ??= Uuid::fromString(Item::ROOT_ID);
         $normalized = $this->normalizer->normalize($name);
 
+        /** @var list<array{match_id: string, match_name: string, match_parent_id: ?string, match_total: int|string, depth: int|string, node_id: string, node_name: string}> $rows */
         $rows = $this->connection()->fetchAllAssociative(self::SEARCH_SQL, [
             'folderId' => $folderId,
             'normalized' => $normalized,
@@ -182,13 +185,14 @@ final class ItemRepository implements ItemRepositoryInterface
             'offset' => ParameterType::INTEGER,
         ]);
 
-        if ($rows === []) {
-            $total = (int) $this->connection()->fetchOne(self::SEARCH_COUNT_SQL, [
+        if ([] === $rows) {
+            /** @var int|string|false $count */
+            $count = $this->connection()->fetchOne(self::SEARCH_COUNT_SQL, [
                 'folderId' => $folderId,
                 'normalized' => $normalized,
             ], ['folderId' => 'uuid']);
 
-            return ['items' => [], 'total' => $total];
+            return ['items' => [], 'total' => (int) $count];
         }
 
         return ['items' => $this->matchesFromRows($rows), 'total' => (int) $rows[0]['match_total']];
@@ -196,10 +200,11 @@ final class ItemRepository implements ItemRepositoryInterface
 
     public function findSuggestionsByPrefix(string $prefix, int $limit = 10): array
     {
-        if ($prefix === '') {
+        if ('' === $prefix) {
             return [];
         }
 
+        /** @var list<array{match_id: string, match_name: string, match_parent_id: ?string, depth: int|string, node_id: string, node_name: string}> $rows */
         $rows = $this->connection()->fetchAllAssociative(self::SUGGESTIONS_SQL, [
             'pattern' => $this->prefixPattern($prefix),
             'limit' => $limit,
@@ -225,7 +230,7 @@ final class ItemRepository implements ItemRepositoryInterface
     /**
      * Rows arrive grouped per match, ancestors first (depth descending).
      *
-     * @param list<array<string, mixed>> $rows
+     * @param list<array{match_id: string, match_name: string, match_parent_id: ?string, depth: int|string, node_id: string, node_name: string}> $rows
      *
      * @return list<array{id: Uuid, name: string, parentId: ?Uuid, path: list<array{id: Uuid, name: string}>}>
      */
@@ -234,23 +239,23 @@ final class ItemRepository implements ItemRepositoryInterface
         $matches = [];
 
         foreach ($rows as $row) {
-            $matchId = (string) $row['match_id'];
+            $matchId = $row['match_id'];
 
             if (!isset($matches[$matchId])) {
                 $matches[$matchId] = [
                     'id' => Uuid::fromString($matchId),
-                    'name' => (string) $row['match_name'],
-                    'parentId' => $row['match_parent_id'] === null
+                    'name' => $row['match_name'],
+                    'parentId' => null === $row['match_parent_id']
                         ? null
-                        : Uuid::fromString((string) $row['match_parent_id']),
+                        : Uuid::fromString($row['match_parent_id']),
                     'path' => [],
                 ];
             }
 
             if ((int) $row['depth'] > 0) {
                 $matches[$matchId]['path'][] = [
-                    'id' => Uuid::fromString((string) $row['node_id']),
-                    'name' => (string) $row['node_name'],
+                    'id' => Uuid::fromString($row['node_id']),
+                    'name' => $row['node_name'],
                 ];
             }
         }

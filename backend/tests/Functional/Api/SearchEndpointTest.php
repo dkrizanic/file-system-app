@@ -6,13 +6,12 @@ namespace App\Tests\Functional\Api;
 
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
-use Symfony\Component\Uid\Uuid;
 
 final class SearchEndpointTest extends ApiTestCase
 {
     #[Test]
     #[TestDox('An all-scope search finds files case-insensitively across folders, never folders')]
-    public function all_scope_search_finds_files_with_paths(): void
+    public function allScopeSearchFindsFilesWithPaths(): void
     {
         $folderA = $this->createFolderAt(null, 'A');
         $folderB = $this->createFolderAt(null, 'B');
@@ -21,20 +20,23 @@ final class SearchEndpointTest extends ApiTestCase
         $this->createFolderAt(null, 'notes');
 
         $page = $this->decode($this->request('GET', '/api/search?name=NOTES&scope=all'));
+        $items = $this->pageItems($page);
 
         self::assertSame(2, $page['total']);
         self::assertSame(50, $page['limit']);
         self::assertSame(0, $page['offset']);
         self::assertSame(
             [$inA->id->toRfc4122(), $inB->id->toRfc4122()],
-            $this->sortedIds(array_column($page['items'], 'id')),
+            $this->sortedIds(array_column($items, 'id')),
         );
 
-        foreach ($page['items'] as $item) {
+        foreach ($items as $item) {
             self::assertSame(['id', 'type', 'name', 'parentId', 'parentPath'], array_keys($item));
         }
 
-        $inADetail = $page['items'][array_search($inA->id->toRfc4122(), array_column($page['items'], 'id'), true)];
+        $indexOfInA = array_search($inA->id->toRfc4122(), array_column($items, 'id'), true);
+        self::assertIsInt($indexOfInA);
+        $inADetail = $items[$indexOfInA];
         self::assertSame(
             [['id' => $this->rootId()->toRfc4122(), 'name' => 'Root'], ['id' => $folderA->id->toRfc4122(), 'name' => 'A']],
             $inADetail['parentPath'],
@@ -43,7 +45,7 @@ final class SearchEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A folder scope restricts the search to that folder subtree')]
-    public function folder_scope_restricts_to_subtree(): void
+    public function folderScopeRestrictsToSubtree(): void
     {
         $scope = $this->createFolderAt(null, 'Scope');
         $nested = $this->createFolderAt($scope->id, 'Nested');
@@ -52,15 +54,16 @@ final class SearchEndpointTest extends ApiTestCase
         $this->createFileAt($outside->id, 'dup');
 
         $page = $this->decode($this->request('GET', '/api/search?name=dup&scope=folder&folderId='.$scope->id->toRfc4122()));
+        $items = $this->pageItems($page);
 
         self::assertSame(1, $page['total']);
-        self::assertSame($inside->id->toRfc4122(), $page['items'][0]['id']);
-        self::assertSame('dup', $page['items'][0]['name']);
+        self::assertSame($inside->id->toRfc4122(), $items[0]['id']);
+        self::assertSame('dup', $items[0]['name']);
     }
 
     #[Test]
     #[TestDox('Searching with the root as scope behaves like the all scope')]
-    public function root_scope_behaves_like_all(): void
+    public function rootScopeBehavesLikeAll(): void
     {
         $folder = $this->createFolderAt(null, 'A');
         $this->createFileAt($folder->id, 'dup');
@@ -71,12 +74,15 @@ final class SearchEndpointTest extends ApiTestCase
 
         self::assertSame(2, $rootPage['total']);
         self::assertSame($allPage['total'], $rootPage['total']);
-        self::assertSame(array_column($allPage['items'], 'id'), array_column($rootPage['items'], 'id'));
+        self::assertSame(
+            array_column($this->pageItems($allPage), 'id'),
+            array_column($this->pageItems($rootPage), 'id'),
+        );
     }
 
     #[Test]
     #[TestDox('The all scope ignores a folderId, even a bogus one')]
-    public function all_scope_ignores_folder_id(): void
+    public function allScopeIgnoresFolderId(): void
     {
         $folder = $this->createFolderAt(null, 'A');
         $file = $this->createFileAt($folder->id, 'dup');
@@ -84,12 +90,12 @@ final class SearchEndpointTest extends ApiTestCase
         $page = $this->decode($this->request('GET', '/api/search?name=dup&scope=all&folderId=01890a5d-ac96-774b-bcce-b302099a8057'));
 
         self::assertSame(1, $page['total']);
-        self::assertSame($file->id->toRfc4122(), $page['items'][0]['id']);
+        self::assertSame($file->id->toRfc4122(), $this->pageItems($page)[0]['id']);
     }
 
     #[Test]
     #[TestDox('Blank or missing search names are 400 validation failures')]
-    public function blank_or_missing_name_returns_400(): void
+    public function blankOrMissingNameReturns400(): void
     {
         $error = $this->errorEnvelope($this->request('GET', '/api/search?name=%20&scope=all'), 400, 'validation_failed');
         self::assertSame('The search term must not be blank.', $this->detailFor($error, 'name'));
@@ -100,7 +106,7 @@ final class SearchEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A folder scope without folderId is a 400 with a folderId detail')]
-    public function folder_scope_without_folder_id_returns_400(): void
+    public function folderScopeWithoutFolderIdReturns400(): void
     {
         $error = $this->errorEnvelope($this->request('GET', '/api/search?name=x&scope=folder'), 400, 'validation_failed');
 
@@ -109,7 +115,7 @@ final class SearchEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A nonexistent folder scope is a 404')]
-    public function nonexistent_folder_scope_returns_404(): void
+    public function nonexistentFolderScopeReturns404(): void
     {
         $this->errorEnvelope(
             $this->request('GET', '/api/search?name=x&scope=folder&folderId=01890a5d-ac96-774b-bcce-b302099a8057'),
@@ -120,7 +126,7 @@ final class SearchEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('A file used as a folder scope is a 404')]
-    public function file_folder_scope_returns_404(): void
+    public function fileFolderScopeReturns404(): void
     {
         $folder = $this->createFolderAt(null, 'A');
         $file = $this->createFileAt($folder->id, 'notes.txt');
@@ -134,7 +140,7 @@ final class SearchEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('An unknown scope value is a 400 with a scope detail')]
-    public function unknown_scope_returns_400(): void
+    public function unknownScopeReturns400(): void
     {
         $error = $this->errorEnvelope($this->request('GET', '/api/search?name=x&scope=everywhere'), 400, 'validation_failed');
 
@@ -143,7 +149,7 @@ final class SearchEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Zero matches are an empty page, never an error')]
-    public function zero_matches_return_empty_page(): void
+    public function zeroMatchesReturnEmptyPage(): void
     {
         $page = $this->decode($this->request('GET', '/api/search?name=missing&scope=all'));
 
@@ -153,7 +159,7 @@ final class SearchEndpointTest extends ApiTestCase
 
     #[Test]
     #[TestDox('Search pages respect limit and offset with a full total')]
-    public function search_paginates_with_full_total(): void
+    public function searchPaginatesWithFullTotal(): void
     {
         $folder = $this->createFolderAt(null, 'A');
         $this->createFileAt($folder->id, 'dup');
@@ -163,14 +169,14 @@ final class SearchEndpointTest extends ApiTestCase
         $pastEnd = $this->decode($this->request('GET', '/api/search?name=dup&scope=all&limit=1&offset=5'));
 
         self::assertSame(2, $pageOne['total']);
-        self::assertCount(1, $pageOne['items']);
+        self::assertCount(1, $this->pageItems($pageOne));
         self::assertSame([], $pastEnd['items']);
         self::assertSame(2, $pastEnd['total']);
     }
 
     #[Test]
     #[TestDox('Search runs a constant number of queries in both scopes')]
-    public function search_uses_constant_queries(): void
+    public function searchUsesConstantQueries(): void
     {
         $folder = $this->createFolderAt(null, 'A');
         $this->createFileAt($folder->id, 'dup');
@@ -187,9 +193,9 @@ final class SearchEndpointTest extends ApiTestCase
     }
 
     /**
-     * @param list<string> $ids
+     * @param list<mixed> $ids
      *
-     * @return list<string>
+     * @return list<mixed>
      */
     private function sortedIds(array $ids): array
     {

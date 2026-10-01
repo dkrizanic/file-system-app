@@ -42,7 +42,7 @@ final class ItemService implements ItemServiceInterface
 
     public function createFolder(CreateFolder $command): ItemSummary
     {
-        $parent = $command->parentId === null
+        $parent = null === $command->parentId
             ? $this->root()
             : $this->folderParent($command->parentId);
         $item = $this->mapper->toFolder($command, $parent);
@@ -99,7 +99,7 @@ final class ItemService implements ItemServiceInterface
 
     public function search(SearchQuery $query): Page
     {
-        $scopeFolderId = $query->scope === SearchScope::Folder
+        $scopeFolderId = SearchScope::Folder === $query->scope
             ? $this->requireFolder($query->folderScopeId())->getId()
             : null;
         $matches = $this->repository->findByExactName($query->name, $scopeFolderId, $query->limit, $query->offset);
@@ -137,7 +137,7 @@ final class ItemService implements ItemServiceInterface
     {
         $root = $this->repository->find(Uuid::fromString(Item::ROOT_ID));
 
-        if ($root === null) {
+        if (null === $root) {
             throw new ParentNotFoundException();
         }
 
@@ -148,11 +148,11 @@ final class ItemService implements ItemServiceInterface
     {
         $parent = $this->repository->find($parentId);
 
-        if ($parent === null) {
+        if (null === $parent) {
             throw new ParentNotFoundException();
         }
 
-        if ($parent->getType() !== ItemType::Folder) {
+        if (ItemType::Folder !== $parent->getType()) {
             throw new InvalidParentTypeException();
         }
 
@@ -163,7 +163,7 @@ final class ItemService implements ItemServiceInterface
     {
         $item = $this->repository->find($id);
 
-        if ($item === null) {
+        if (null === $item) {
             throw new ItemNotFoundException();
         }
 
@@ -176,7 +176,7 @@ final class ItemService implements ItemServiceInterface
 
         // A file addressed as a folder does not exist (404); only a parent
         // given to a create call is a 400 instead (folderParent).
-        if ($item->getType() !== ItemType::Folder) {
+        if (ItemType::Folder !== $item->getType()) {
             throw new ItemNotFoundException();
         }
 
