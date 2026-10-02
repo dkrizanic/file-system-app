@@ -36,7 +36,7 @@ export function NameDialog({
   }
 
   return (
-    <Modal title={title}>
+    <Modal title={title} onClose={onCancel}>
       <form className="dialog-form" onSubmit={handleSubmit}>
         <input
           type="text"

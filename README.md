@@ -70,7 +70,7 @@ PostgreSQL started by compose — a real database, never a mock.
 # start the throwaway test database (tmpfs: nothing survives its removal)
 docker compose -f compose.yaml -f compose.test.yaml --profile test up -d --wait db-test
 
-# run everything: 19 tests, ~3 s
+# run everything: 32 tests, ~3 s
 docker compose exec app php bin/phpunit
 
 # stop the test database when done
@@ -81,6 +81,9 @@ docker compose exec app composer phpstan
 
 # code style: check only (composer cs-fix applies the ruleset)
 docker compose exec app composer cs-check
+
+# frontend gate: the strict TypeScript build (there is no frontend test suite)
+docker compose run --rm node npm run build
 ```
 
 The suite is intentionally small: one happy-path and one bad-path test per
@@ -113,7 +116,9 @@ Cascade delete 10,101 items x3: 196.5 / 187.1 / 179.4 ms                 (target
 ```
 
 The command exits non-zero if either target is missed and leaves the
-database as it found it (only the seeded root folder).
+database as it found it (only the seeded root folder). It also refuses
+to run against a database whose name does not contain "test", so a
+plain `app:benchmark` in the app container cannot wipe the dev data.
 
 ## API overview
 
@@ -129,7 +134,7 @@ JSON only, camelCase fields, on `http://localhost:8080`:
 | `PATCH /api/items/{id}` | Rename (`{"name": "..."}`) | `200` | 400, 404, 409 |
 | `DELETE /api/items/{id}` | Delete file / cascade folder | `204` | 400, 404 |
 | `GET /api/search?name=&scope=folder\|all&folderId=` | Exact search, files only | `200` + page | 400, 404 |
-| `GET /api/suggestions?prefix=` | Top-10 files starting with the prefix | `200` | — |
+| `GET /api/suggestions?prefix=` | Top-10 files starting with the prefix | `200` | 400 |
 
 A listing page is `{"items": [...], "total", "limit", "offset"}`; a summary
 is `{"id", "type": "folder"|"file", "name", "parentId"}`; a detail adds
@@ -167,11 +172,17 @@ Codes: `validation_failed` (400), `not_found` (404), `conflict` (409),
   delete; rename was added by explicit user decision (PRD FR-4), not scope
   creep.
 - **No CI pipeline.** GitHub Actions is deliberately out of scope; the local
-  gates above (test suite, PHPStan, PHP-CS-Fixer) run before every push.
-- **Small test suite.** 19 tests — one happy + one bad path per endpoint and
-  the end-to-end flow; edge cases (pagination boundaries, Unicode variants,
-  the suggestions cap) are not pinned. No frontend tests either — the strict
-  TypeScript build covers the frontend.
+  gates above (test suite, PHPStan, PHP-CS-Fixer, frontend build) run before
+  every push.
+- **Small test suite.** 32 tests — one happy + one bad path per endpoint,
+  the end-to-end flow, and unit tests for the documented validation rules;
+  other edge cases (pagination boundaries, Unicode variants) are not
+  pinned. No frontend tests either — the strict TypeScript build covers
+  the frontend.
+- **Names sort bytewise.** Listings order names by the normalized name
+  under the `"C"` collation, so accented initials (Č, Š, Ž…) come after
+  every ASCII letter. That collation is what lets the suggestions prefix
+  scan use its index; locale-aware ordering would trade that away.
 - **Dev image only.** The app container runs in debug mode with dev
   dependencies; a hardened production image is future work.
 - **Migrations own the schema.** Doctrine's schema tool must never run

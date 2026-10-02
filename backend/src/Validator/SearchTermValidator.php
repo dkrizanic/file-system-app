@@ -24,7 +24,13 @@ final class SearchTermValidator extends ConstraintValidator
             throw new UnexpectedValueException($value, 'string');
         }
 
-        if ('' === trim($value)) {
+        if (!mb_check_encoding($value, 'UTF-8')) {
+            $this->context->buildViolation($constraint->encodingMessage)->addViolation();
+
+            return;
+        }
+
+        if (!$constraint->allowBlank && '' === trim($value)) {
             $this->context->buildViolation($constraint->blankMessage)->addViolation();
         }
     }

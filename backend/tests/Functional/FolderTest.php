@@ -44,6 +44,26 @@ final class FolderTest extends ApiTestCase
     }
 
     #[Test]
+    #[TestDox('A body that is not JSON is a 400 validation envelope')]
+    public function malformedJsonBodyReturns400Envelope(): void
+    {
+        $response = $this->send('POST', '/api/folders', 'not json');
+
+        $error = $this->errorEnvelope($response, 400, 'validation_failed');
+        self::assertSame([], $error['details'] ?? []);
+    }
+
+    #[Test]
+    #[TestDox('A body with a wrongly typed field is a 400 with a detail for that field')]
+    public function typeMismatchedBodyReturns400WithFieldDetails(): void
+    {
+        $response = $this->request('POST', '/api/folders', ['name' => 123]);
+
+        $error = $this->errorEnvelope($response, 400, 'validation_failed');
+        self::assertNotSame('', $this->detailFor($error, 'name'));
+    }
+
+    #[Test]
     #[TestDox('Listing a folder returns folders first with page metadata')]
     public function listingReturnsFoldersFirstWithMetadata(): void
     {

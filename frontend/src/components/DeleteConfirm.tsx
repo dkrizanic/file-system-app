@@ -18,7 +18,7 @@ export function DeleteConfirm({
   onCancel,
 }: DeleteConfirmProps) {
   return (
-    <Modal title={`Delete ${itemName}?`}>
+    <Modal title={`Delete ${itemName}?`} onClose={onCancel}>
       {isFolder && <p>Everything inside this folder will be deleted too.</p>}
       {error !== null && (
         <p className="form-error" role="alert">

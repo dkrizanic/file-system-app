@@ -29,7 +29,7 @@ class Item
     private string $name;
 
     #[ORM\Column(name: 'normalized_name', type: 'text')]
-    private string $normalizedName;
+    private string $normalizedName; // @phpstan-ignore property.onlyWritten (hydrated and snapshotted by Doctrine via reflection)
 
     public function __construct(string $name, ItemType $type, ?self $parent, NameNormalizer $normalizer)
     {
@@ -67,11 +67,6 @@ class Item
     public function getName(): string
     {
         return $this->name;
-    }
-
-    public function getNormalizedName(): string
-    {
-        return $this->normalizedName;
     }
 
     private function applyName(string $name, NameNormalizer $normalizer): void

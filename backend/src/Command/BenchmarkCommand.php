@@ -9,6 +9,7 @@ use App\DTO\Write\CreateFolder;
 use App\DTO\Write\SuggestionQuery;
 use App\Entity\Item;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -59,6 +60,15 @@ final class BenchmarkCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        if (!$this->runsAgainstTestDatabase()) {
+            $output->writeln(sprintf(
+                '<error>Refusing to run against database "%s": this command deletes every item.</error> Point DATABASE_URL at the db-test container as shown in the README.',
+                $this->connection->getDatabase() ?? 'unknown',
+            ));
+
+            return Command::FAILURE;
+        }
+
         $this->ensureSchema($output);
         $this->wipe();
 
@@ -157,8 +167,11 @@ final class BenchmarkCommand extends Command
                 FROM item i
                 WHERE i.type = 'folder' AND i.normalized_name LIKE 'bucket-%'
             ) b
-            CROSS JOIN generate_series(1, 1000) AS g
-            SQL);
+            CROSS JOIN generate_series(1, :filesPerBucket) AS g
+            SQL,
+            ['filesPerBucket' => self::FILES_PER_BUCKET],
+            ['filesPerBucket' => ParameterType::INTEGER],
+        );
     }
 
     private function seedDoomedSubtree(): Uuid
@@ -178,8 +191,11 @@ final class BenchmarkCommand extends Command
                 FROM item i
                 WHERE i.type = 'folder' AND i.normalized_name LIKE 'doomed-%'
             ) f
-            CROSS JOIN generate_series(1, 100) AS g
-            SQL);
+            CROSS JOIN generate_series(1, :filesPerFolder) AS g
+            SQL,
+            ['filesPerFolder' => self::FILES_PER_DELETE_FOLDER],
+            ['filesPerFolder' => ParameterType::INTEGER],
+        );
 
         return $root;
     }
@@ -191,6 +207,13 @@ final class BenchmarkCommand extends Command
             ['root' => Item::ROOT_ID],
             ['root' => 'uuid'],
         );
+    }
+
+    private function runsAgainstTestDatabase(): bool
+    {
+        $database = $this->connection->getDatabase();
+
+        return \is_string($database) && str_contains(strtolower($database), 'test');
     }
 
     private function countItems(): int

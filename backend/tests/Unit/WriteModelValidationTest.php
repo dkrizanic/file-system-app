@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Tests\Unit;
 
 use App\DTO\Write\CreateFolder;
+use App\Validator\ItemName;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
 use PHPUnit\Framework\TestCase;
@@ -43,5 +45,27 @@ final class WriteModelValidationTest extends TestCase
         self::assertCount(1, $violations);
         self::assertSame('name', $violations->get(0)->getPropertyPath());
         self::assertSame('Name must not be blank.', $violations->get(0)->getMessage());
+    }
+
+    #[Test]
+    #[TestDox('A folder name that breaks a documented rule is rejected on name')]
+    #[DataProvider('rejectedFolderNames')]
+    public function invalidFolderNameIsRejected(string $name): void
+    {
+        $violations = $this->validator->validate(new CreateFolder(null, $name));
+
+        self::assertNotCount(0, $violations);
+        self::assertSame('name', $violations->get(0)->getPropertyPath());
+    }
+
+    /**
+     * @return \Generator<string, list<string>>
+     */
+    public static function rejectedFolderNames(): \Generator
+    {
+        yield 'reserved dot' => ['.'];
+        yield 'path separator' => ['a/b'];
+        yield 'control character' => ["bad\nname"];
+        yield 'too long' => [str_repeat('x', ItemName::MAX_LENGTH + 1)];
     }
 }

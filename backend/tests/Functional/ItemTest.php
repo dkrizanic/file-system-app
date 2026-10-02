@@ -96,6 +96,21 @@ final class ItemTest extends ApiTestCase
     }
 
     #[Test]
+    #[TestDox('The seeded root folder cannot be renamed or deleted')]
+    public function rootFolderCannotBeRenamedOrDeleted(): void
+    {
+        $rename = $this->request('PATCH', $this->itemUri($this->rootId()), ['name' => 'Home']);
+        $this->errorEnvelope($rename, 400, 'validation_failed');
+
+        $delete = $this->request('DELETE', $this->itemUri($this->rootId()));
+        $this->errorEnvelope($delete, 400, 'validation_failed');
+
+        $root = $this->request('GET', $this->itemUri($this->rootId()));
+        self::assertSame(200, $root->getStatusCode());
+        self::assertSame('Root', $this->decode($root)['name']);
+    }
+
+    #[Test]
     #[TestDox('Deleting an unknown item is a 404 envelope')]
     public function deletingUnknownItemReturns404(): void
     {

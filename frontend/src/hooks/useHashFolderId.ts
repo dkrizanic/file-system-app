@@ -8,7 +8,12 @@ function folderHash(folderId: string, rootFolderId: string): string {
 
 function folderIdFromHash(hash: string, rootFolderId: string): string {
   const match = FOLDER_HASH_PATTERN.exec(hash)
-  return match === null ? rootFolderId : decodeURIComponent(match[1])
+  if (match === null) return rootFolderId
+  try {
+    return decodeURIComponent(match[1])
+  } catch {
+    return rootFolderId
+  }
 }
 
 export function useHashFolderId(rootFolderId: string | null): {

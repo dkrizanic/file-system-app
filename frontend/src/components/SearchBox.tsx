@@ -13,13 +13,14 @@ export function SearchBox({ onSearch, onSelectSuggestion }: SearchBoxProps) {
   const [name, setName] = useState('')
   const [searchAllFolders, setSearchAllFolders] = useState(false)
   const debouncedName = useDebouncedValue(name, 300)
-  const hasTypedText = debouncedName.trim().length > 0
-  const { suggestions, hasError } = useSuggestions(debouncedName, hasTypedText)
+  const trimmedName = debouncedName.trim()
+  const hasTypedText = trimmedName.length > 0
+  const { suggestions, hasError } = useSuggestions(trimmedName, hasTypedText)
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault()
     if (name.trim().length === 0) return
-    onSearch(name, searchAllFolders ? 'all' : 'folder')
+    onSearch(name.trim(), searchAllFolders ? 'all' : 'folder')
   }
 
   function handleSelectSuggestion(folderId: string) {

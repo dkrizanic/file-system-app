@@ -24,10 +24,18 @@ export function ItemList({ items, onOpenFolder, onRename, onDelete }: ItemListPr
             <span className="item-name">{item.name}</span>
           )}
           <span className="item-type">{item.type}</span>
-          <button type="button" onClick={() => onRename(item)}>
+          <button
+            type="button"
+            aria-label={`Rename "${item.name}"`}
+            onClick={() => onRename(item)}
+          >
             Rename
           </button>
-          <button type="button" onClick={() => onDelete(item)}>
+          <button
+            type="button"
+            aria-label={`Delete "${item.name}"`}
+            onClick={() => onDelete(item)}
+          >
             Delete
           </button>
         </li>

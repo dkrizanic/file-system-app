@@ -142,7 +142,7 @@ abstract class ApiTestCase extends FunctionalTestCase
         self::fail(sprintf('No error detail for field "%s" in: %s', $field, json_encode($error)));
     }
 
-    private function send(string $method, string $uri, ?string $content): Response
+    protected function send(string $method, string $uri, ?string $content): Response
     {
         $this->client()->request($method, $uri, [], [], [
             'CONTENT_TYPE' => 'application/json',

@@ -10,6 +10,10 @@ final class NameNormalizer
 {
     public function normalize(string $name): string
     {
+        // Stored names arrive trimmed from the mapper; query terms do not, so
+        // trimming here keeps both forms canonical for the equality match.
+        $name = trim($name);
+
         if (false === \Normalizer::normalize($name)) {
             throw new \InvalidArgumentException('A name cannot be normalized because it is not valid UTF-8.');
         }
