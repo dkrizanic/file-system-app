@@ -10,8 +10,7 @@ updated: 2026-09-30
 ## 0. Document Purpose
 
 This PRD defines the product requirements for the File System App — a
-browser-based file system built as a take-home task for a PHP developer
-interview. It is written for the hiring reviewer evaluating the solution and for
+browser-based file system. It is written for reviewers and contributors and for
 the downstream artifacts (architecture doc, tickets) that implement it.
 Vocabulary is anchored in §3 Glossary; features carry globally numbered FRs;
 every inference made without confirmation is tagged `[ASSUMPTION]` and indexed
@@ -38,13 +37,13 @@ scale, delivered as code a reviewer can read, run, and trust.
 - Organize a large set of named items into a nested folder structure (functional)
 - Retrieve a known item by name without remembering where it lives (functional)
 - Trust that deletes and renames never silently corrupt the structure (emotional)
-- For the builder: demonstrate craft — structure, readability, maintainability —
-  to a hiring reviewer (contextual)
+- For the builder: keep the codebase worth maintaining — structure, readability,
+  maintainability (contextual)
 
 ### 2.2 Non-Users (v1)
 
 - Anyone needing file content, upload, sharing, sync, or multi-user access —
-  explicitly not built (brief scope-down).
+  explicitly not built (scope-down decision).
 
 ### 2.3 Key User Journeys
 
@@ -74,7 +73,7 @@ scale, delivered as code a reviewer can read, run, and trust.
 - **Parent Folder** — the Folder an Item directly lives in. Names are unique
   among all sibling Items regardless of type (a File `notes` blocks a Folder
   `notes`), compared case-insensitively `[ASSUMPTION: matches the Windows/macOS
-  framing of the brief]`.
+  framing of desktop file managers]`.
 - **Normalized Name** — a name case-folded and Unicode-normalized (NFC). The
   Normalized Name drives uniqueness, Exact-Name Search, and Suggestions;
   displaying keeps the original casing.
@@ -142,7 +141,7 @@ The user can create a File inside any Folder, including the Root. Realizes UJ-1.
 ### 4.3 Renaming
 
 **Description:** The user renames a File or Folder in place; the hierarchy
-around it is untouched. Beyond the brief's feature list by explicit user
+around it is untouched. Beyond the core feature list by explicit user
 decision — a sanctioned addition, not scope creep (see SM-C1).
 
 #### FR-4: Rename item
@@ -197,7 +196,7 @@ Realizes UJ-2.
 
 The user can find Files whose Normalized Name equals the normalized Search
 String within a chosen Folder's subtree (its own Files and all descendants').
-Folders are not returned — the brief scopes search to files.
+Folders are not returned — search is scoped to files by decision.
 
 **Consequences (testable):**
 - Returns only exact normalized matches inside the scope; ordered by
@@ -253,16 +252,16 @@ starts with the normalized Search String.
 - **NFR-4 API discipline:** REST per AGENTS.md §4 — correct methods and status
   codes, validated input, consistent error envelope (conflicts carry
   field-level `details`), paginated collections.
-- **NFR-5 No auth:** single-user by design (brief scope-down), stated in the README.
+- **NFR-5 No auth:** single-user by design (scope-down decision), stated in the README.
 
 ## 5. Non-Goals (Explicit)
 
 - File content, upload, download, sizes, thumbnails — a file is its name.
-- Authentication and authorization — explicitly descoped by the brief.
+- Authentication and authorization — explicitly descoped.
 - Moving items between folders — recorded in the README quality-of-life section.
 - Trash, undo, version history — deletes are immediate.
 - Sharing, sync, multi-device, multi-user collaboration.
-- Visual design and mobile/responsive adaptation — explicitly waived by the brief.
+- Visual design and mobile/responsive adaptation — explicitly waived.
 - Fuzzy, substring, or content search — only exact and starts-with.
 
 ## 6. MVP Scope
@@ -272,9 +271,9 @@ starts with the normalized Search String.
 Features 4.1–4.5 (FR-1 through FR-9) delivered end-to-end: React UI, REST API,
 PostgreSQL, Docker one-command run, functional and unit tests, honest README.
 
-The brief grants latitude on the database (SQL, noSQL, in-memory, or file DB
+The database choice grants latitude (SQL, noSQL, in-memory, or file DB
 all acceptable); PostgreSQL is a deliberate recorded choice (AGENTS.md
-decision D-series), not an oversight. The brief makes Docker optional; we ship
+decision D-series), not an oversight. Docker was optional; we ship
 it deliberately — the one-command run is what SM-1 measures.
 
 ### 6.2 Out of Scope for MVP
@@ -291,9 +290,9 @@ folders, trash with restore, bulk operations, drag-and-drop.
   including edge cases, unit tests for validation. Validates FR-1…FR-9.
 
 **Counter-metrics (do not optimize)**
-- **SM-C1:** feature count beyond the brief — extra features lower the score
-  (rename is the single sanctioned exception, §4.3); structure, readability
-  and maintainability are what is rated.
+- **SM-C1:** feature count beyond the core set — every extra feature adds
+  surface to maintain (rename is the single sanctioned exception, §4.3);
+  structure, readability and maintainability are the priorities.
 
 ## 8. Open Questions
 
@@ -314,4 +313,4 @@ folders, trash with restore, bulk operations, drag-and-drop.
 - §4.6 — scale target 100k items; 10k-subtree atomic delete within 10 s;
   ~200 ms p95 suggestion latency with worst-case shared-prefix corpus.
 - §4.3 / §5 — Root is immutable (no create, rename, delete) `[ASSUMPTION:
-  framing; the brief never mentions a root at all]`.
+  framing; the original feature list never mentions a root at all]`.

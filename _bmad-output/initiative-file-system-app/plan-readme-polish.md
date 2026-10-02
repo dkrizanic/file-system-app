@@ -23,7 +23,7 @@ context: ['{project-root}/AGENTS.md', '{project-root}/_bmad-output/initiative-fi
 
 ## Boundaries & Constraints
 
-**Always:** every command, URL, status code, and response excerpt the README prints is executed in this unit and matches observed output; the eight §10 sections, in contract order (What it does · Requirements · How to run · How to test · API overview · Assumptions · Known limitations & trade-offs · What I'd improve with more time); the API overview carries the AD-6 route table plus one worked example per endpoint; the error envelope and fixed code vocabulary exactly as AGENTS §4; the mandated limitations all present — no frontend tests (D6), compose test-db instead of Testcontainers-PHP (D14), no CI pipeline (D16), rename as the sanctioned beyond-brief feature, move/trash deferred to improvements, debug-mode dev runtime; the mandated improvements all present — move, trash, a CI pipeline on GitHub Actions, FrankenPHP worker mode, Redis revisit (D2), Symfony 8.2 LTS hop; plain English, short sentences, no marketing tone (§11.2); README.md + AGENTS.md changes in one docs commit.
+**Always:** every command, URL, status code, and response excerpt the README prints is executed in this unit and matches observed output; the eight §10 sections, in contract order (What it does · Requirements · How to run · How to test · API overview · Assumptions · Known limitations & trade-offs · What I'd improve with more time); the API overview carries the AD-6 route table plus one worked example per endpoint; the error envelope and fixed code vocabulary exactly as AGENTS §4; the mandated limitations all present — no frontend tests (D6), compose test-db instead of Testcontainers-PHP (D14), no CI pipeline (D16), rename as the sanctioned beyond-spec feature, move/trash deferred to improvements, debug-mode dev runtime; the mandated improvements all present — move, trash, a CI pipeline on GitHub Actions, FrankenPHP worker mode, Redis revisit (D2), Symfony 8.2 LTS hop; plain English, short sentences, no marketing tone (§11.2); README.md + AGENTS.md changes in one docs commit.
 
 **Never:** no application code or dependency changes — a README claim that fails against the running system is reported for the owning unit, never reworded into vagueness; no new endpoints, error codes, routes, or CI files; no status box ticked without verifying it in the tree; no marketing tone anywhere in the README.
 
@@ -42,7 +42,7 @@ context: ['{project-root}/AGENTS.md', '{project-root}/_bmad-output/initiative-fi
 
 **Execution:**
 - [x] `git` -- create `docs/readme-polish` off the tip the orchestrator provides -- one branch per work unit (D13)
-- [x] `AGENTS.md` -- append D16 (no CI pipeline: quality gates run locally, README states it) and D17 (rename is the single beyond-brief feature, sanctioned per PRD FR-4, prd-file-system-app.md:145) -- the goal mandates both trade-off statements; §11.5 requires the decisions behind them logged
+- [x] `AGENTS.md` -- append D16 (no CI pipeline: quality gates run locally, README states it) and D17 (rename is the single beyond-spec feature, sanctioned per PRD FR-4, prd-file-system-app.md:145) -- the goal mandates both trade-off statements; §11.5 requires the decisions behind them logged
 - [x] `README.md` -- rewrite to the eight §10 sections against the running system: boot `docker compose up -d --build`, dry-run every planned command, curl all 8 AD-6 routes (plus one 400 and one 409 for the envelope), run the suite on `db-test`, capture real outputs, then write -- claims must match captured output, not memory
 - [x] `AGENTS.md` -- Project status: verify each open box against the tree, tick only the true ones; expected true: API endpoints + validation, React app, README polish; expected false: Tooling & CI (no pipeline, D16)
 
@@ -68,7 +68,7 @@ context: ['{project-root}/AGENTS.md', '{project-root}/_bmad-output/initiative-fi
 
 Plan-level decisions (pre-approved, no open questions):
 - API overview shape: the AD-6 table verbatim (method, path, purpose, success) + one worked example per route — curl command and a short real response excerpt. The error envelope and code vocabulary are documented once; examples reference them.
-- Rename appears in What it does as the single beyond-brief feature and again under Known limitations; move and trash are not implemented and live only under What I'd improve — per the PRD's deferred quality-of-life note (prd-file-system-app.md:282-284).
+- Rename appears in What it does as the single beyond-spec feature and again under Known limitations; move and trash are not implemented and live only under What I'd improve — per the PRD's deferred quality-of-life note (prd-file-system-app.md:282-284).
 - D16/D17 are appended by this unit because the goal mandates their trade-offs and the on-disk log ends at D15 (verified 2026-10-01).
 - Status-box expectation is pinned but verification wins: Tooling & CI stays unticked unless PHPStan, PHP-CS-Fixer, and a GitHub Actions pipeline are all present.
 - Still-true limitation bullets carry forward (dev-only image, vendor volume with the manual `composer install` step, schema-tool warning, PostgreSQL 18 volume path, port 8080); claims made false by delivered units are rewritten, not kept.

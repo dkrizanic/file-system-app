@@ -18,13 +18,13 @@ context: ['{project-root}/AGENTS.md', '{project-root}/_bmad-output/initiative-fi
 
 ## Intent
 
-**Problem:** The repo has empty `backend/`/`frontend/` folder skeletons and nothing runs; the brief requires the solution to build and run end-to-end in debug mode from the README alone.
+**Problem:** The repo has empty `backend/`/`frontend/` folder skeletons and nothing runs; the solution must build and run end-to-end in debug mode from the README alone.
 
 **Approach:** Scaffold Symfony 8.1 (API-shaped) into `backend/`, pin the dependency platform to PHP 8.5 (container runtime), add Doctrine ORM + migrations + validator + serializer + monolog and the test pack, and bring up the dev environment with docker compose (FrankenPHP app container in `APP_ENV=dev` + PostgreSQL 18), verified by console, SQL, and HTTP checks. README gets its first real run instructions.
 
 ## Boundaries & Constraints
 
-**Always:** AGENTS.md conventions govern; debug mode (`APP_ENV=dev`, `APP_DEBUG=1`) per the brief; `.env.example` mirrors `.env`; `.gitattributes` forces LF; work on `feature/symfony-skeleton`; no leftover generator scaffolding in the commit; spine AD-8 topology — this unit ships app+db, the nginx/frontend container lands with the frontend unit.
+**Always:** AGENTS.md conventions govern; debug mode (`APP_ENV=dev`, `APP_DEBUG=1`) as decided; `.env.example` mirrors `.env`; `.gitattributes` forces LF; work on `feature/symfony-skeleton`; no leftover generator scaffolding in the commit; spine AD-8 topology — this unit ships app+db, the nginx/frontend container lands with the frontend unit.
 
 **Never:** no domain code (entity, migrations, endpoints, NameNormalizer — next unit); no frontend code; no CI/PHPStan/CS-Fixer (tooling unit); no Redis; never run `composer create-project` into non-empty `backend/` (scaffold in temp, then move); never commit `.env`, `vendor/`, `var/`.
 

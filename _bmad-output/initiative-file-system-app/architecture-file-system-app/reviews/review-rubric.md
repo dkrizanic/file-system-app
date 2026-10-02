@@ -5,7 +5,7 @@
 | **Spine** | `architecture-file-system-app.md` (initiative altitude, build-substrate) |
 | **Inputs judged against** | PRD `prd-file-system-app/prd-file-system-app.md` · AGENTS.md (inherited invariants) |
 | **Lens** | Good-spine checklist from `bmad-architecture/references/reviewer-gate.md` |
-| **Stakes / units** | Interview take-home; two independently built units: React SPA and Symfony API |
+| **Stakes / units** | Production-shaped deliverable; two independently built units: React SPA and Symfony API |
 | **Date** | 2026-10-01 |
 | **Verdict** | **Strong spine, adopt with fixes.** Seven of eight checklist dimensions pass outright; the one real weakness sits exactly where the two independent units meet — the read side of the API contract (response schemas, root discovery, input normalization) needs one more pass before handoff. |
 
@@ -108,7 +108,7 @@ The dimension a domain-focused draft usually skips is here, and decided: deploym
 environments (AD-8: compose runtime, dev proxy, same pinned versions), config
 (conventions row: `.env` / compose env / `.env.example`), operations-lite (logging
 convention, debug mode, no-leak 500s), infra/provider (GitHub repo D4, GH Actions §8),
-security (auth descoped by the brief, NFR-5). Data model, API contract-write-side,
+security (auth descoped, NFR-5). Data model, API contract-write-side,
 and performance are decided by AD-1…AD-7.
 
 The gap is inside the API-contract dimension: its **read side** is neither decided,

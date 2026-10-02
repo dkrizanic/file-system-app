@@ -8,22 +8,21 @@ here, stop and ask — do not improvise.
 
 ## 1. Project context
 
-- **What:** "File system app" — a take-home task for a PHP Developer interview.
+- **What:** "File system app" — a small browser-based file manager: folders and
+  files in a tree, a PHP JSON API and a React SPA.
 - **Goal:** a small, complete, honest, performant application that runs end-to-end
   from the README and demonstrates craft: clean code, correct HTTP, validation,
   error handling, and meaningful tests.
-- **Calibration:** this is an interview task and it has to be excellent in every
-  way — but excellence here means **simple, performant, correct and complete**, not
+- **Calibration:** the bar is excellence in every way — and excellence means
+  **simple, performant, correct and complete**, not
   enterprise-heavy. Every abstraction must earn its place. Performance is designed
   in from the start (sensible indexes, no N+1 queries, pagination), never bolted on
   afterwards. Boring, working, fast solutions beat clever ones. When in doubt,
   choose the simpler approach — and record the trade-off in the README.
 
-The exact task statement is not in the repo yet. If the official task text arrives,
-paste it verbatim into §12. Until then, confirm feature scope with the user before
-building anything domain-specific.
+Confirm feature scope with the user before building anything domain-specific.
 
-## 2. Evaluation criteria (from the task brief — all must be satisfied)
+## 2. Quality bar (all must be satisfied)
 
 1. Solution runs end-to-end using only the instructions in the README.
 2. Clean, readable PHP with clear naming, a sensible structure, and a sensible
@@ -41,7 +40,7 @@ building anything domain-specific.
 We deliberately aim high — clean, performant, well-tested work that survives senior
 review. What stays out: speculative architecture (microservices, CQRS, event
 sourcing), gold-plating, and abstraction without a second concrete use.
-Over-engineering is as much an interview failure as sloppiness.
+Over-engineering is as much a failure as sloppiness.
 
 ## 3. Architecture & stack (decided)
 
@@ -189,23 +188,29 @@ Decision log.
 
 ## 6. Testing strategy
 
-- **Functional tests** — real requests / repository calls against a **real
-  PostgreSQL container** started by compose under the `test` profile
-  (`db-test`, root `compose.test.yaml`). The database is never mocked.
-- **Unit tests** — validation rules, small pure logic; fast, no container.
+The suite is deliberately small (D18): each API endpoint carries **one
+happy-path test and one bad-path test**, plus **one end-to-end flow test**
+that walks the main user journey, and a few unit tests. Broader edge-case
+coverage is a stated trade-off in the README and is added per case when a
+regression justifies it.
+
+- **Functional tests** — real HTTP requests against a **real PostgreSQL
+  container** started by compose under the `test` profile (`db-test`, root
+  `compose.test.yaml`). The database is never mocked.
+- **Unit tests** — write-model validation and the name normalizer; fast, no
+  container.
 
 Principles:
 
 - Arrange–Act–Assert; one behavior per test.
-- Test names describe behavior: `create_directory_with_blank_name_returns_400`.
+- Test names describe behavior: `blank_search_name_returns_400`.
 - Tests are independent and order-safe; each test creates its own data; no shared
   mutable state. Functional tests wrap each test in a transaction that is rolled
   back.
 - Test public behavior, not implementation details.
-- Cover happy paths and the meaningful edge cases: blank/oversized input, missing
-  resources, name conflicts, boundary values.
 - Every bug fix ships with a regression test that fails without it.
-- Assert query counts on critical paths so N+1 stays impossible by construction.
+- Pin query counts where a whole query shape matters: the flow test pins the
+  search CTE at one query so an N+1 path lookup cannot creep back in.
 
 The §6 fallback was applied as D14: no stable Testcontainers client for PHP
 could be verified, so the suite uses a compose-managed throwaway test database.
@@ -311,9 +316,9 @@ additional BMAD modules without asking.
 | D1 | MVC split as: Model+Controller in the Symfony JSON API, View in the React SPA | Brief demands layer separation and a modern frontend | 2026-09-30 |
 | D2 | No Redis for now | No concrete need yet (no caching/rate-limiting requirement); revisit when one appears | 2026-09-30 |
 | D3 | JSON fields are camelCase | Matches TypeScript and PHP naming without a mapping layer | 2026-09-30 |
-| D4 | Repo hosted private at `dkrizanic/file-system-app` on GitHub | Interview task, private by default | 2026-09-30 |
+| D4 | Repo hosted private at `dkrizanic/file-system-app` on GitHub | Private by default | 2026-09-30 |
 | D5 | Quality bar: simple + performant + complete — full stop; over-engineering still banned | The task must be excellent in every way; deliberate simplicity is the vehicle, not the excuse | 2026-09-30 |
-| D6 | No frontend tests; testing effort goes to the backend | The company evaluates the PHP side; frontend stays lean. Trade-off to be stated in the README | 2026-09-30 |
+| D6 | No frontend tests; testing effort goes to the backend | The PHP backend is the core of the app; frontend stays lean. Trade-off to be stated in the README | 2026-09-30 |
 | D7 | PHPStan + PHP-CS-Fixer + GitHub Actions CI enforce the conventions | Conventions that nothing enforces drift; CI also shows reviewers a green pipeline | 2026-09-30 |
 | D8 | DTOs split into read models (responses) and write models (validated input); interfaces for every service and repository | Responses never leak entities; contracts between layers are explicit and mockable | 2026-09-30 |
 | D9 | Interfaces collected in `src/Contract/`; implementations keep natural names in their layer folders | Java-style contract/implementation separation with one glanceable folder and no `*Impl` naming noise | 2026-09-30 |
@@ -324,52 +329,20 @@ additional BMAD modules without asking.
 | D14 | Test-database fallback applied: compose-managed throwaway `db-test` (root `compose.test.yaml`, `test` profile, tmpfs, host port 5433) replaces Testcontainers | No stable, maintained Testcontainers client for PHP could be verified; the §6 fallback applies. Trade-off stated in the README | 2026-10-01 |
 | D15 | Cascade delete rides the `parent_id` FK `ON DELETE CASCADE` inside the service transaction; spine AD-5 amended (same id) | PostgreSQL removes the subtree atomically in one statement; recursive CTEs remain for scoped search and ancestor paths | 2026-10-01 |
 | D16 | CI on GitHub Actions is out of scope — nothing lives under `.github/`; the local gates (PHPStan, PHP-CS-Fixer, the test suite) are the whole enforcement layer | User decision (2026-10-01); supersedes the CI part of D7. AGENTS.md §8 promises no CI | 2026-10-01 |
-| D17 | Rename is the single beyond-brief feature — sanctioned by explicit user decision (PRD FR-4); everything else stays inside the task brief | PRD §4.3 records the sanction (prd-file-system-app.md:145); the README states it up front so a reviewer never reads rename as scope creep | 2026-10-01 |
+| D17 | Rename is the single beyond-spec feature — sanctioned by explicit user decision (PRD FR-4); everything else stays inside the agreed feature set | PRD §4.3 records the sanction (prd-file-system-app.md:145); the README states it up front so a reviewer never reads rename as scope creep | 2026-10-01 |
+| D18 | Test suite cut from 109 to 19 tests: one happy + one bad path per endpoint, one end-to-end flow test, minimal unit tests; §6 amended to match | User decision (2026-10-02) trading coverage breadth for a small, fast suite; edge cases are not pinned — restore coverage per case when a regression justifies it. Trade-off stated in the README | 2026-10-02 |
 
 ### Project status
 
 - [x] Git repo, GitHub remote, AGENTS.md
 - [x] Folder structure: `backend/` (Symfony MVC) + `frontend/` (React)
 - [x] BMAD PRD: `_bmad-output/initiative-file-system-app/prd-file-system-app/`
-- [x] BMAD architecture doc: `_bmad-output/initiative-file-system-app/architecture-file-system-app/` (analyst step skipped — task brief was the input)
+- [x] BMAD architecture doc: `_bmad-output/initiative-file-system-app/architecture-file-system-app/` (analyst step skipped — the agreed feature list was the input)
 - [x] Symfony skeleton + Docker dev environment (compose with PostgreSQL)
 - [x] Domain model & migrations (file-system domain)
 - [x] API endpoints + validation + error handling
 - [x] React app: structure, API layer, error boundary
-- [x] Functional suite (compose `db-test`, real PostgreSQL) + unit tests — delivered with the domain model; grows with each API unit
+- [x] Test suite: per-endpoint happy/bad paths, one end-to-end flow test, unit tests for validation and the normalizer (D18)
 - [x] Tooling: PHPStan and PHP-CS-Fixer as local gates — no CI by decision (D16)
+- [x] Benchmark: `app:benchmark` measures the NFR-1/2 targets (suggestion latency at 100k files, 10k-item cascade delete) — both pass
 - [x] README polish: assumptions, trade-offs, improvements
-
-## 12. Task brief (verbatim)
-
-> We want to create a large-scale browser-based file system, functionally similar to
-> Dropbox's web interface, or a folder browsing structure you might find on a Windows
-> or macOS device. A user should be able to:
->
-> - Create folders and subfolders
-> - Create new files in the folders
-> - Search files by their exact name within a parent folder or across all files
->   List the top 10 files that start with a search string. This will be used in the
->   search box to show possible matches when the user is typing. Only "start with"
->   logic is required.
-> - Delete folders and files
->
-> For this exercise, you can assume that a file is simply its name and does not
-> contain any other content.
->
-> The frontend does NOT have to include any design or be adapted for mobile devices.
-> The default React framework is acceptable.
->
-> API service should use a SQL or noSQL database (of your choice! InMemory or File
-> DB is also acceptable).
->
-> Provide a README with instructions on how to deploy your application.
->
-> Additional notes:
->
-> - Solution has to build and run in debug mode
-> - Docker is optional and it will be considered
-> - The solution must be delivered via a Git repository.
-> - We will rate your solution on code structure, readability, and maintainability.
-> - To scope down this assignment, please don't worry about authentication or
->   authorization.

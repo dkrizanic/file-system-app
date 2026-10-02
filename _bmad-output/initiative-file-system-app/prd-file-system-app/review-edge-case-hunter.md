@@ -2,7 +2,7 @@
 
 **Reviewer:** edge-case-hunter (path-tracing pass over requirements)
 **Date:** 2026-09-30
-**Scope:** `prd-file-system-app.md` (FR-1..FR-9, glossary, NFRs, UJs), `addendum.md`; AGENTS.md §4 and §12 read as boundary context only.
+**Scope:** `prd-file-system-app.md` (FR-1..FR-9, glossary, NFRs, UJs), `addendum.md`; AGENTS.md §4 read as boundary context only.
 **Method:** mechanically walk every FR's "Consequences (testable)" against every rule asserted elsewhere in the PRD (glossary, UJs, NFRs, assumptions) and AGENTS.md §4; report only unhandled paths — boundaries and interactions no stated consequence pins down.
 
 **Verdict:** The FR set is well-shaped but its testable consequences cover happy paths plus a few named validations; the collation/case rule, empty search input, pagination ordering, and several root/rename/concurrency boundaries are un-pinned, and two sections contradict each other (or AGENTS.md §4) as written. 21 findings: 1 critical, 6 high, 9 medium, 5 low.
@@ -68,9 +68,9 @@ Severity counts: **critical 1 · high 6 · medium 9 · low 5**.
 **Fix:** Extend the bounds line: "Names are trimmed; blank-after-trim is rejected; `.` and `..` and any control character are rejected; length limit is 255 characters."
 
 ### EC-11 — FR-7 vs FR-8 asymmetry: scoped search returns *Items*, global returns *Files* — and the brief says "files" for both
-**Location:** §4.5 FR-7 ("find Items") vs FR-8 ("find Files") vs FR-9 ("Files"); AGENTS.md §12 ("Search files … within a parent folder or across all files")
-**Gap:** Scoped search finds files *and folders*, global finds files only. If deliberate, no consequence or rationale says so; if accidental, it contradicts both FR-8 and the verbatim brief. Related unhandled root case: choosing the Root as FR-7's scope makes it a superset of FR-8 — behavior there is undefined.
-**Fix:** Pick one: align FR-7 to Files (matches brief), or keep Items and add a consequence stating folders are included in scoped search only, and define Root-as-scope behavior explicitly.
+**Location:** §4.5 FR-7 ("find Items") vs FR-8 ("find Files") vs FR-9 ("Files")
+**Gap:** Scoped search finds files *and folders*, global finds files only. If deliberate, no consequence or rationale says so; if accidental, it contradicts FR-8. Related unhandled root case: choosing the Root as FR-7's scope makes it a superset of FR-8 — behavior there is undefined.
+**Fix:** Pick one: align FR-7 to Files, or keep Items and add a consequence stating folders are included in scoped search only, and define Root-as-scope behavior explicitly.
 
 ### EC-12 — FR-5's consequences omit every post-delete invariant that FR-6 spells out
 **Location:** §4.4 FR-5 (single consequence: not-found) vs FR-6
@@ -126,9 +126,9 @@ Severity counts: **critical 1 · high 6 · medium 9 · low 5**.
 
 ---
 
-## Notes on contradictions found (per review brief)
+## Notes on contradictions found
 
-1. **FR-7 (Items) vs FR-8 (Files) vs brief §12 ("files" both scopes)** — EC-11.
+1. **FR-7 (Items) vs FR-8 (Files) — "files" in both search scopes** — EC-11.
 2. **§8 Open Question 2 (case matching "confirm") vs FR-1 consequences already asserting case-insensitive duplicates** — EC-01.
 3. **UJ-1/FR-1 "field-level validation error" vs AGENTS.md §4 duplicates → 409 `conflict`** — EC-16.
 4. **§3 "Root … cannot be deleted" vs FR-6 consequences omitting it** — EC-06.

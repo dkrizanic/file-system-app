@@ -7,14 +7,14 @@ without fitting the PRD narrative. Decisions below are mirrored in the run's
 ## Alternatives considered
 
 - **Folder deletion.** Options: cascade (chosen) vs refuse-when-non-empty vs
-  trash-with-restore. Refusal adds an extra UI flow and endpoint for no rated
-  value; trash adds restore UX the brief never asks for. Cascade is one
+  trash-with-restore. Refusal adds an extra UI flow and endpoint for no
+  added value; trash adds restore UX the product never asks for. Cascade is one
   behavior, trivially testable, and matches "delete means delete".
-- **Rename scope.** Brief omits rename and move. User chose rename in, move out
+- **Rename scope.** The original scope omits rename and move. User chose rename in, move out
   (README quality-of-life). Rename reuses creation validation almost entirely,
   so it is nearly free; move drags in subtree integrity concerns.
 - **Autocomplete scope.** Global (chosen assumption) vs current-folder-first.
-  The brief describes the search box showing matches while typing, Dropbox-style;
+  The search box shows matches while typing, Dropbox-style;
   global matches that mental model. Folder-first optimizes for a browsing flow
   the typeahead does not serve.
 

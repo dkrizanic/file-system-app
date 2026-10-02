@@ -4,7 +4,7 @@ type: architecture-spine
 purpose: build-substrate
 altitude: initiative
 paradigm: layered modular monolith behind a REST/JSON boundary, SPA view
-scope: Symfony API, PostgreSQL, React SPA, Docker runtime — the whole take-home
+scope: Symfony API, PostgreSQL, React SPA, Docker runtime — the whole deliverable
 status: final
 created: 2026-09-30
 updated: 2026-10-01
@@ -243,18 +243,22 @@ folders first) · partial prefix index per AD-7.
 | NFR-1/2 performance | indexes + query-count tests (benchmark script deferred) | AD-2, AD-7, inherited perf principles |
 | NFR-3 run/deploy | compose + README | AD-8 |
 
+## Measurement
+
+NFR-1/2 are measured by the `app:benchmark` command (functional tests assert
+query counts on listing, search, and suggestions on top). It seeds a
+100,000-file corpus including the worst-case shared prefix, times the real
+service paths, and fails when a target is missed — reproduction commands and
+the latest numbers live in the README's benchmark section (suggestions
+~30 ms p95 vs ~200 ms target; 10,101-item cascade delete ~0.2 s vs 10 s).
+
 ## Deferred
 
-- NFR-1/2 measurement: functional tests assert query counts on listing,
-  search, and suggestions. The seeded benchmark script (100k corpus incl.
-  worst-case shared prefix) was deferred and not built; the NFR numbers
-  (200 ms p95, 10 s / 10k delete) are unmeasured — recorded in the README's
-  Known limitations.
 - Doctrine migration naming, fixture/seed strategy (beyond the root seed) —
   scaffold-time detail.
 - CI workflow — out of scope per D16 (2026-10-01); the local gates in
   AGENTS.md §8 (PHPStan, PHP-CS-Fixer, the test suite) are the whole
   enforcement layer.
-- FrankenPHP worker mode / opcache tuning — the debug take-home doesn't need it.
+- FrankenPHP worker mode / opcache tuning — the debug-mode runtime doesn't need it.
 - Redis — explicitly absent (D2).
 - Frontend component breakdown — owned by the SPA build per AGENTS.md §3.
