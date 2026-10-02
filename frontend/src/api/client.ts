@@ -119,6 +119,10 @@ export function createFile(input: CreateFileInput, options: RequestOptions = {})
   return request('/files', { ...options, method: 'POST', body: input })
 }
 
+export function getRootFolder(options: RequestOptions = {}): Promise<ItemSummary> {
+  return request('/root-folder', options)
+}
+
 export function getItem(itemId: string, options: RequestOptions = {}): Promise<ItemDetail> {
   return request(`/items/${encodeURIComponent(itemId)}`, options)
 }

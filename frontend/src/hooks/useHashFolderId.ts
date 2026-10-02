@@ -1,32 +1,42 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ROOT_FOLDER_ID } from '../constants'
 
 const FOLDER_HASH_PATTERN = /^#\/folders\/(.+)$/
 
-export function folderHash(folderId: string): string {
-  return folderId === ROOT_FOLDER_ID ? '#/' : `#/folders/${folderId}`
+function folderHash(folderId: string, rootFolderId: string): string {
+  return folderId === rootFolderId ? '#/' : `#/folders/${folderId}`
 }
 
-function folderIdFromHash(hash: string): string {
+function folderIdFromHash(hash: string, rootFolderId: string): string {
   const match = FOLDER_HASH_PATTERN.exec(hash)
-  return match === null ? ROOT_FOLDER_ID : decodeURIComponent(match[1])
+  return match === null ? rootFolderId : decodeURIComponent(match[1])
 }
 
-export function useHashFolderId(): {
-  folderId: string
+export function useHashFolderId(rootFolderId: string | null): {
+  folderId: string | null
   navigateToFolder: (folderId: string) => void
 } {
-  const [folderId, setFolderId] = useState(() => folderIdFromHash(window.location.hash))
+  const [folderId, setFolderId] = useState<string | null>(() =>
+    rootFolderId === null ? null : folderIdFromHash(window.location.hash, rootFolderId),
+  )
 
   useEffect(() => {
-    const onHashChange = () => setFolderId(folderIdFromHash(window.location.hash))
+    setFolderId(rootFolderId === null ? null : folderIdFromHash(window.location.hash, rootFolderId))
+  }, [rootFolderId])
+
+  useEffect(() => {
+    if (rootFolderId === null) return
+    const onHashChange = () => setFolderId(folderIdFromHash(window.location.hash, rootFolderId))
     window.addEventListener('hashchange', onHashChange)
     return () => window.removeEventListener('hashchange', onHashChange)
-  }, [])
+  }, [rootFolderId])
 
-  const navigateToFolder = useCallback((nextFolderId: string) => {
-    window.location.hash = folderHash(nextFolderId)
-  }, [])
+  const navigateToFolder = useCallback(
+    (nextFolderId: string) => {
+      if (rootFolderId === null) return
+      window.location.hash = folderHash(nextFolderId, rootFolderId)
+    },
+    [rootFolderId],
+  )
 
   return { folderId, navigateToFolder }
 }

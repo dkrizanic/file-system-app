@@ -1,3 +1,5 @@
+import { Modal } from './Modal'
+
 interface DeleteConfirmProps {
   itemName: string
   isFolder: boolean
@@ -16,24 +18,21 @@ export function DeleteConfirm({
   onCancel,
 }: DeleteConfirmProps) {
   return (
-    <div className="modal-overlay">
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
-        <h2 id="delete-confirm-title">Delete {itemName}?</h2>
-        {isFolder && <p>Everything inside this folder will be deleted too.</p>}
-        {error !== null && (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
-        )}
-        <div className="modal-actions">
-          <button type="button" onClick={onCancel} disabled={isDeleting}>
-            Cancel
-          </button>
-          <button type="button" className="danger" onClick={onConfirm} disabled={isDeleting}>
-            {isDeleting ? 'Deleting…' : 'Delete'}
-          </button>
-        </div>
+    <Modal title={`Delete ${itemName}?`}>
+      {isFolder && <p>Everything inside this folder will be deleted too.</p>}
+      {error !== null && (
+        <p className="form-error" role="alert">
+          {error}
+        </p>
+      )}
+      <div className="modal-actions">
+        <button type="button" onClick={onCancel} disabled={isDeleting}>
+          Cancel
+        </button>
+        <button type="button" className="danger" onClick={onConfirm} disabled={isDeleting}>
+          {isDeleting ? 'Deleting…' : 'Delete'}
+        </button>
       </div>
-    </div>
+    </Modal>
   )
 }

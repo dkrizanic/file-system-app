@@ -1,9 +1,10 @@
 import type { ItemDetail } from '../types/ItemDetail'
 import type { Page } from '../types/Page'
-import { EmptyState } from './EmptyState'
-import { ErrorBanner } from './ErrorBanner'
-import { LoadingState } from './LoadingState'
-import { Pagination } from './Pagination'
+import { useSuggestions } from '../hooks/useSuggestions'
+import { EmptyState } from '../components/EmptyState'
+import { ErrorBanner } from '../components/ErrorBanner'
+import { LoadingState } from '../components/LoadingState'
+import { Pagination } from '../components/Pagination'
 
 interface SearchResultsProps {
   query: string
@@ -26,6 +27,9 @@ export function SearchResults({
   onOpenFolder,
   onClose,
 }: SearchResultsProps) {
+  const showNearMatches = page !== null && page.items.length === 0 && !isLoading && error === null
+  const { suggestions } = useSuggestions(query, showNearMatches)
+
   return (
     <section className="search-results" aria-label="Search results">
       <header className="search-results-header">
@@ -39,7 +43,29 @@ export function SearchResults({
       {isLoading && page === null && <LoadingState />}
       {error !== null && <ErrorBanner message={error} />}
       {page !== null && page.items.length === 0 && (
-        <EmptyState message="No files match this search." />
+        <EmptyState message={`No file is named exactly "${query}".`} />
+      )}
+      {showNearMatches && suggestions.length > 0 && (
+        <div className="near-matches">
+          <p className="near-matches-title">Files that start with "{query}":</p>
+          <ul className="item-list">
+            {suggestions.map((suggestion) => {
+              const parent = suggestion.parentPath[suggestion.parentPath.length - 1]
+              return (
+                <li key={suggestion.id} className="item-row">
+                  <span className="item-name">{suggestion.name}</span>
+                  <button
+                    type="button"
+                    className="item-path"
+                    onClick={() => onOpenFolder(parent.id)}
+                  >
+                    in {parent.name}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       )}
       {page !== null && page.items.length > 0 && (
         <ul className="item-list">

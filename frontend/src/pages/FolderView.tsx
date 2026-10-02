@@ -5,11 +5,10 @@ import { Breadcrumbs } from '../components/Breadcrumbs'
 import { DeleteConfirm } from '../components/DeleteConfirm'
 import { EmptyState } from '../components/EmptyState'
 import { ErrorBanner } from '../components/ErrorBanner'
-import { ItemForm } from '../components/ItemForm'
 import { ItemList } from '../components/ItemList'
 import { LoadingState } from '../components/LoadingState'
+import { NameDialog } from '../components/NameDialog'
 import { Pagination } from '../components/Pagination'
-import { ROOT_FOLDER_ID } from '../constants'
 import { useFolderItems } from '../hooks/useFolderItems'
 import { useItemDetail } from '../hooks/useItemDetail'
 import { ApiError } from '../types/ApiError'
@@ -19,8 +18,15 @@ const PAGE_LIMIT = 50
 
 interface FolderViewProps {
   folderId: string
+  rootId: string
   onNavigate: (folderId: string) => void
 }
+
+type DialogState =
+  | { kind: 'create-folder' }
+  | { kind: 'create-file' }
+  | { kind: 'rename'; target: ItemSummary }
+  | null
 
 interface PendingDelete {
   item: ItemSummary
@@ -34,12 +40,10 @@ function messageFor(error: unknown, fallback: string): string {
   return nameError !== undefined ? nameError.message : error.message
 }
 
-export function FolderView({ folderId, onNavigate }: FolderViewProps) {
+export function FolderView({ folderId, rootId, onNavigate }: FolderViewProps) {
   const [offset, setOffset] = useState(0)
-  const [createFolderError, setCreateFolderError] = useState<string | null>(null)
-  const [createFileError, setCreateFileError] = useState<string | null>(null)
-  const [renameTarget, setRenameTarget] = useState<ItemSummary | null>(null)
-  const [renameError, setRenameError] = useState<string | null>(null)
+  const [dialog, setDialog] = useState<DialogState>(null)
+  const [dialogError, setDialogError] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
 
   const { detail, error: detailError, isLoading: detailIsLoading } = useItemDetail(folderId)
@@ -50,42 +54,46 @@ export function FolderView({ folderId, onNavigate }: FolderViewProps) {
     detail !== null,
   )
 
+  function openDialog(next: NonNullable<DialogState>): void {
+    setDialog(next)
+    setDialogError(null)
+  }
+
   async function handleCreateFolder(name: string): Promise<void> {
-    setCreateFolderError(null)
     try {
       await createFolder({ parentId: folderId, name })
+      setDialog(null)
       refetch()
     } catch (error) {
-      setCreateFolderError(messageFor(error, 'The folder could not be created.'))
+      setDialogError(messageFor(error, 'The folder could not be created.'))
       throw error
     }
   }
 
   async function handleCreateFile(name: string): Promise<void> {
-    setCreateFileError(null)
     try {
       await createFile({ parentId: folderId, name })
+      setDialog(null)
       refetch()
     } catch (error) {
-      setCreateFileError(messageFor(error, 'The file could not be created.'))
+      setDialogError(messageFor(error, 'The file could not be created.'))
       throw error
     }
   }
 
   async function handleRename(name: string): Promise<void> {
-    if (renameTarget === null) return
-    setRenameError(null)
+    if (dialog === null || dialog.kind !== 'rename') return
     try {
-      await renameItem(renameTarget.id, name)
-      setRenameTarget(null)
+      await renameItem(dialog.target.id, name)
+      setDialog(null)
       refetch()
     } catch (error) {
       if (error instanceof ApiError && error.code === 'not_found') {
-        setRenameTarget(null)
+        setDialog(null)
         refetch()
         return
       }
-      setRenameError(messageFor(error, 'The item could not be renamed.'))
+      setDialogError(messageFor(error, 'The item could not be renamed.'))
       throw error
     }
   }
@@ -123,7 +131,7 @@ export function FolderView({ folderId, onNavigate }: FolderViewProps) {
       return (
         <section className="not-found">
           <EmptyState message="This folder does not exist anymore." />
-          <button type="button" onClick={() => onNavigate(ROOT_FOLDER_ID)}>
+          <button type="button" onClick={() => onNavigate(rootId)}>
             Back to root
           </button>
         </section>
@@ -137,29 +145,13 @@ export function FolderView({ folderId, onNavigate }: FolderViewProps) {
     <section className="folder-view">
       <Breadcrumbs path={detail.parentPath} currentName={detail.name} onNavigate={onNavigate} />
       <ErrorBoundary>
-        <div className="forms">
-          <ItemForm
-            label="New folder name"
-            submitLabel="Create folder"
-            error={createFolderError}
-            onSubmit={handleCreateFolder}
-          />
-          <ItemForm
-            label="New file name"
-            submitLabel="Create file"
-            error={createFileError}
-            onSubmit={handleCreateFile}
-          />
-          {renameTarget !== null && (
-            <ItemForm
-              key={renameTarget.id}
-              label={`Rename "${renameTarget.name}"`}
-              submitLabel="Rename"
-              initialName={renameTarget.name}
-              error={renameError}
-              onSubmit={handleRename}
-            />
-          )}
+        <div className="toolbar">
+          <button type="button" onClick={() => openDialog({ kind: 'create-folder' })}>
+            New folder
+          </button>
+          <button type="button" onClick={() => openDialog({ kind: 'create-file' })}>
+            New file
+          </button>
         </div>
       </ErrorBoundary>
       <div className="listing">
@@ -170,7 +162,7 @@ export function FolderView({ folderId, onNavigate }: FolderViewProps) {
           <ItemList
             items={page.items}
             onOpenFolder={onNavigate}
-            onRename={setRenameTarget}
+            onRename={(item) => openDialog({ kind: 'rename', target: item })}
             onDelete={(item) => setPendingDelete({ item, isDeleting: false, error: null })}
           />
         )}
@@ -178,11 +170,40 @@ export function FolderView({ folderId, onNavigate }: FolderViewProps) {
           <Pagination
             total={page.total}
             limit={page.limit}
-            offset={page.offset}
+            offset={offset}
             onPageChange={setOffset}
           />
         )}
       </div>
+      {dialog?.kind === 'create-folder' && (
+        <NameDialog
+          title="New folder"
+          submitLabel="Create"
+          error={dialogError}
+          onSubmit={handleCreateFolder}
+          onCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'create-file' && (
+        <NameDialog
+          title="New file"
+          submitLabel="Create"
+          error={dialogError}
+          onSubmit={handleCreateFile}
+          onCancel={() => setDialog(null)}
+        />
+      )}
+      {dialog?.kind === 'rename' && (
+        <NameDialog
+          key={dialog.target.id}
+          title={`Rename "${dialog.target.name}"`}
+          submitLabel="Rename"
+          initialName={dialog.target.name}
+          error={dialogError}
+          onSubmit={handleRename}
+          onCancel={() => setDialog(null)}
+        />
+      )}
       {pendingDelete !== null && (
         <DeleteConfirm
           itemName={pendingDelete.item.name}

@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { searchItems, toApiError, type SearchScope } from '../api/client'
+import { ErrorBanner } from '../components/ErrorBanner'
 import { ErrorBoundary } from '../components/ErrorBoundary'
+import { LoadingState } from '../components/LoadingState'
 import { SearchBox } from '../components/SearchBox'
 import { SearchResults } from '../components/SearchResults'
 import { useHashFolderId } from '../hooks/useHashFolderId'
+import { useRootFolderId } from '../hooks/useRootFolderId'
 import type { ItemDetail } from '../types/ItemDetail'
 import type { Page } from '../types/Page'
 import { FolderView } from './FolderView'
@@ -21,7 +24,8 @@ interface SearchViewState {
 }
 
 export function FolderBrowserPage() {
-  const { folderId, navigateToFolder } = useHashFolderId()
+  const { rootId, error: rootError, isLoading: rootIsLoading } = useRootFolderId()
+  const { folderId, navigateToFolder } = useHashFolderId(rootId)
   const [searchView, setSearchView] = useState<SearchViewState | null>(null)
 
   const handleNavigate = useCallback(
@@ -45,7 +49,7 @@ export function FolderBrowserPage() {
   }, [])
 
   useEffect(() => {
-    if (searchView === null) return
+    if (searchView === null || folderId === null) return
     const controller = new AbortController()
     searchItems(
       {
@@ -76,6 +80,24 @@ export function FolderBrowserPage() {
 
   const searchScopeLabel = searchView?.scope === 'all' ? 'all folders' : 'this folder'
 
+  if (rootError !== null) {
+    return (
+      <main className="browser">
+        <h1>File system</h1>
+        <ErrorBanner message={rootError.message} />
+      </main>
+    )
+  }
+
+  if (rootIsLoading || rootId === null || folderId === null) {
+    return (
+      <main className="browser">
+        <h1>File system</h1>
+        <LoadingState label="Loading folder…" />
+      </main>
+    )
+  }
+
   return (
     <main className="browser">
       <h1>File system</h1>
@@ -83,7 +105,7 @@ export function FolderBrowserPage() {
         <SearchBox onSearch={handleSearch} onSelectSuggestion={handleNavigate} />
       </ErrorBoundary>
       {searchView === null ? (
-        <FolderView key={folderId} folderId={folderId} onNavigate={handleNavigate} />
+        <FolderView key={folderId} folderId={folderId} rootId={rootId} onNavigate={handleNavigate} />
       ) : (
         <SearchResults
           query={searchView.query}
