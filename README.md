@@ -177,10 +177,15 @@ Codes: `validation_failed` (400), `not_found` (404), `conflict` (409),
 
 ## Assumptions
 
-- Single user — no authentication or authorization, by decision.
+- Single user today — no authentication or authorization. Multi-user is
+  the planned evolution (D19 in `AGENTS.md`): a users table, ownership
+  on items, one root folder per account. Nothing in the API surface
+  hardcodes the single tree.
 - A file is just its name; there is no content to upload or download.
-- The root folder is pre-seeded with a fixed id and cannot be renamed or
-  deleted; the SPA resolves its id at startup via `GET /api/root-folder`.
+- The root folder is a physical system row seeded with a fixed id; it
+  cannot be renamed or deleted, and the SPA resolves its id at startup
+  via `GET /api/root-folder`. The fixed id is a bootstrap seam — under
+  multi-user each account gets its own root row.
 - No visual design effort: the UI is deliberately plain utility CSS.
 
 ## Known limitations & trade-offs
