@@ -65,6 +65,7 @@
         "phpstan": "phpstan analyse --memory-limit=512M",
         "cs-check": "php-cs-fixer fix --dry-run --diff",
         "cs-fix": "php-cs-fixer fix",
+        "benchmark": "php bin/console app:benchmark",
         "auto-scripts": {
             "cache:clear": "symfony-cmd",
             "assets:install %PUBLIC_DIR%": "symfony-cmd"
