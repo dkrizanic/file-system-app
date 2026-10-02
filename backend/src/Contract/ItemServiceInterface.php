@@ -33,6 +33,8 @@ interface ItemServiceInterface
 
     public function getItem(Uuid $id): ItemDetail;
 
+    public function rootFolder(): ItemSummary;
+
     /**
      * @return Page<ItemDetail>
      */

@@ -11,6 +11,7 @@ use Symfony\Component\Validator\Exception\UnexpectedValueException;
 final class ItemNameValidator extends ConstraintValidator
 {
     private const RESERVED_NAMES = ['.', '..'];
+    private const CONTROL_CHARACTERS = '/\p{Cc}/u';
 
     public function validate(mixed $value, Constraint $constraint): void
     {
@@ -29,27 +30,49 @@ final class ItemNameValidator extends ConstraintValidator
         $name = trim($value);
 
         if ('' === $name) {
-            $this->context->buildViolation($constraint->blankMessage)->addViolation();
+            $this->reject($constraint->blankMessage);
 
             return;
         }
 
+        $this->rejectWhenTooLong($name, $constraint);
+        $this->rejectWhenReserved($name, $constraint);
+        $this->rejectWhenContainingPathSeparator($name, $constraint);
+        $this->rejectWhenContainingControlCharacter($name, $constraint);
+    }
+
+    private function reject(string $message): void
+    {
+        $this->context->buildViolation($message)->addViolation();
+    }
+
+    private function rejectWhenTooLong(string $name, ItemName $constraint): void
+    {
         if (mb_strlen($name) > ItemName::MAX_LENGTH) {
             $this->context->buildViolation($constraint->tooLongMessage)
                 ->setParameter('{{ limit }}', (string) ItemName::MAX_LENGTH)
                 ->addViolation();
         }
+    }
 
+    private function rejectWhenReserved(string $name, ItemName $constraint): void
+    {
         if (\in_array($name, self::RESERVED_NAMES, true)) {
-            $this->context->buildViolation($constraint->reservedMessage)->addViolation();
+            $this->reject($constraint->reservedMessage);
         }
+    }
 
+    private function rejectWhenContainingPathSeparator(string $name, ItemName $constraint): void
+    {
         if (false !== strpbrk($name, '/\\')) {
-            $this->context->buildViolation($constraint->slashMessage)->addViolation();
+            $this->reject($constraint->slashMessage);
         }
+    }
 
-        if (1 === preg_match('/\p{Cc}/u', $name)) {
-            $this->context->buildViolation($constraint->controlCharMessage)->addViolation();
+    private function rejectWhenContainingControlCharacter(string $name, ItemName $constraint): void
+    {
+        if (1 === preg_match(self::CONTROL_CHARACTERS, $name)) {
+            $this->reject($constraint->controlCharMessage);
         }
     }
 }

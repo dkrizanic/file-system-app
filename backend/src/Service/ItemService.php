@@ -97,6 +97,11 @@ final class ItemService implements ItemServiceInterface
         return $this->mapper->toDetail($item, $ancestorPath);
     }
 
+    public function rootFolder(): ItemSummary
+    {
+        return $this->mapper->toSummary($this->root());
+    }
+
     public function search(SearchQuery $query): Page
     {
         $scopeFolderId = SearchScope::Folder === $query->scope
