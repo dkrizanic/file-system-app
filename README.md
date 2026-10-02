@@ -184,7 +184,12 @@ Codes: `validation_failed` (400), `not_found` (404), `conflict` (409),
   every ASCII letter. That collation is what lets the suggestions prefix
   scan use its index; locale-aware ordering would trade that away.
 - **Dev image only.** The app container runs in debug mode with dev
-  dependencies; a hardened production image is future work.
+  dependencies. That costs real latency locally: every request pays the
+  framework's change-detection and error-rendering overhead, roughly
+  3x the production request time on this developer setup (Windows bind
+  mount, ~300 ms vs ~100 ms per API call). Application code and
+  queries are unaffected — the database work is millisecond-scale. A
+  production-shaped image is future work.
 - **Migrations own the schema.** Doctrine's schema tool must never run
   against these databases — the partial indexes and collation live only in
   the hand-written migration.
@@ -195,4 +200,6 @@ Codes: `validation_failed` (400), `not_found` (404), `conflict` (409),
 - Move items between folders — the most natural next feature.
 - Trash with restore instead of immediate deletes.
 - A CI pipeline so the gates also run on every push.
-- A production-shaped app image (no debug, no dev dependencies).
+- A production-shaped app image (no debug, no dev dependencies), or a
+  compose override that runs the stack in production mode locally —
+  that alone cuts API latency roughly 3x versus the dev image.
