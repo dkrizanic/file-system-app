@@ -50,6 +50,23 @@ docker compose down                 # stop (keeps the database volume)
 docker compose down -v              # stop and wipe the database volume
 ```
 
+### Fast local mode (optional)
+
+The dev image pays the framework's change-detection on every request
+(~3x the production latency on a Windows bind mount). To test with
+production-shaped speed, swap the layer:
+
+```bash
+docker compose down
+docker compose -f compose.yaml -f compose.prod.yaml up -d --wait
+```
+
+Same URL (http://localhost:8080), same database volume. The first
+request warms the prod cache over a few seconds; after that, API
+latency is roughly a third of dev mode. No bind mounts in this mode,
+so code edits do not apply until you switch back to plain
+`docker compose up`.
+
 ### Frontend development (optional)
 
 ```bash
@@ -188,8 +205,9 @@ Codes: `validation_failed` (400), `not_found` (404), `conflict` (409),
   framework's change-detection and error-rendering overhead, roughly
   3x the production request time on this developer setup (Windows bind
   mount, ~300 ms vs ~100 ms per API call). Application code and
-  queries are unaffected — the database work is millisecond-scale. A
-  production-shaped image is future work.
+  queries are unaffected — the database work is millisecond-scale.
+  The Fast local mode above sidesteps it for testing; a hardened
+  production image for deployments is future work.
 - **Migrations own the schema.** Doctrine's schema tool must never run
   against these databases — the partial indexes and collation live only in
   the hand-written migration.
@@ -200,6 +218,6 @@ Codes: `validation_failed` (400), `not_found` (404), `conflict` (409),
 - Move items between folders — the most natural next feature.
 - Trash with restore instead of immediate deletes.
 - A CI pipeline so the gates also run on every push.
-- A production-shaped app image (no debug, no dev dependencies), or a
-  compose override that runs the stack in production mode locally —
-  that alone cuts API latency roughly 3x versus the dev image.
+- A production-shaped app image (no debug, no dev dependencies). The
+  compose override already covers fast prod-mode runs locally; a
+  hardened image for real deployments remains future work.

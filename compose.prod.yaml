@@ -1,0 +1,11 @@
+# Production-mode layer for a fast local run: same stack, but the app
+# kernel skips dev-mode change detection, which roughly triples API speed
+# over a Windows bind mount. Uses no bind mounts, so code edits do not
+# apply here — switch back to plain `docker compose up` for development.
+#   docker compose down
+#   docker compose -f compose.yaml -f compose.prod.yaml up -d --wait
+services:
+  app:
+    environment:
+      APP_ENV: prod
+      APP_DEBUG: 0
