@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
-use App\Contract\ItemRepositoryInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
@@ -60,25 +59,12 @@ abstract class FunctionalTestCase extends WebTestCase
         parent::tearDown();
     }
 
-    protected function connection(): Connection
-    {
-        return $this->connection;
-    }
-
     protected function entityManager(): EntityManagerInterface
     {
         $entityManager = self::getContainer()->get('doctrine.orm.entity_manager');
         \assert($entityManager instanceof EntityManagerInterface);
 
         return $entityManager;
-    }
-
-    protected function repository(): ItemRepositoryInterface
-    {
-        $repository = self::getContainer()->get(ItemRepositoryInterface::class);
-        \assert($repository instanceof ItemRepositoryInterface);
-
-        return $repository;
     }
 
     protected function queryCounter(): QueryCounter

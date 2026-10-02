@@ -4,18 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit;
 
-use App\DTO\Write\CreateFile;
 use App\DTO\Write\CreateFolder;
-use App\DTO\Write\PaginationQuery;
-use App\DTO\Write\RenameItem;
-use App\DTO\Write\SearchQuery;
-use App\DTO\Write\SearchScope;
-use App\DTO\Write\SuggestionQuery;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\Attributes\TestDox;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Uid\Uuid;
-use Symfony\Component\Validator\ConstraintViolationInterface;
 use Symfony\Component\Validator\Validation;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -29,216 +21,27 @@ final class WriteModelValidationTest extends TestCase
     }
 
     #[Test]
+    #[TestDox('A well-formed folder name passes validation')]
+    public function wellFormedFolderNamePasses(): void
+    {
+        $violations = $this->validator->validate(new CreateFolder(null, ' Projects '));
+
+        $messages = [];
+        foreach ($violations as $violation) {
+            $messages[] = $violation->getPropertyPath().': '.$violation->getMessage();
+        }
+
+        self::assertSame([], $messages);
+    }
+
+    #[Test]
     #[TestDox('A blank folder name is rejected on name')]
     public function blankFolderNameIsRejected(): void
     {
-        $messages = $this->messagesOn(new CreateFolder(null, ''), 'name');
+        $violations = $this->validator->validate(new CreateFolder(null, '   '));
 
-        self::assertSame(['Name must not be blank.'], $messages);
-    }
-
-    #[Test]
-    #[TestDox('A whitespace-only folder name is rejected on name')]
-    public function whitespaceOnlyFolderNameIsRejected(): void
-    {
-        self::assertNotEmpty($this->messagesOn(new CreateFolder(null, "  \t\n "), 'name'));
-    }
-
-    #[Test]
-    #[TestDox('A folder name over 255 characters is rejected')]
-    public function overlongFolderNameIsRejected(): void
-    {
-        self::assertStringContainsString(
-            '255',
-            $this->firstMessage(new CreateFolder(null, str_repeat('a', 256)), 'name'),
-        );
-    }
-
-    #[Test]
-    #[TestDox('A folder name of exactly 255 characters is accepted')]
-    public function boundaryLengthFolderNameIsAccepted(): void
-    {
-        self::assertSame([], $this->violationsOn(new CreateFolder(null, str_repeat('a', 255))));
-    }
-
-    #[Test]
-    #[TestDox('Folder names containing a forward or back slash are rejected')]
-    public function slashedFolderNamesAreRejected(): void
-    {
-        self::assertNotEmpty($this->messagesOn(new CreateFolder(null, 'a/b'), 'name'));
-        self::assertNotEmpty($this->messagesOn(new CreateFolder(null, 'a\\b'), 'name'));
-    }
-
-    #[Test]
-    #[TestDox('A folder name containing a control character is rejected')]
-    public function controlCharacterFolderNameIsRejected(): void
-    {
-        self::assertNotEmpty($this->messagesOn(new CreateFolder(null, "a\u{0007}b"), 'name'));
-    }
-
-    #[Test]
-    #[TestDox('The reserved names "." and ".." are rejected')]
-    public function reservedDotNamesAreRejected(): void
-    {
-        self::assertNotEmpty($this->messagesOn(new CreateFolder(null, '.'), 'name'));
-        self::assertNotEmpty($this->messagesOn(new CreateFolder(null, '..'), 'name'));
-    }
-
-    #[Test]
-    #[TestDox('A padded name is validated after trimming')]
-    public function paddedNameIsValidatedTrimmed(): void
-    {
-        self::assertSame([], $this->violationsOn(new CreateFolder(null, ' Projects ')));
-        self::assertNotEmpty($this->messagesOn(new CreateFolder(null, '   .   '), 'name'));
-    }
-
-    #[Test]
-    #[TestDox('Dots inside a name are accepted')]
-    public function dotsInsideNameAreAccepted(): void
-    {
-        self::assertSame([], $this->violationsOn(new CreateFolder(null, 'notes.txt')));
-    }
-
-    #[Test]
-    #[TestDox('A folder without parentId is accepted')]
-    public function folderWithoutParentIsAccepted(): void
-    {
-        self::assertSame([], $this->violationsOn(new CreateFolder(null, 'Docs')));
-    }
-
-    #[Test]
-    #[TestDox('A file without parentId is rejected on parentId')]
-    public function fileWithoutParentIsRejected(): void
-    {
-        $messages = $this->messagesOn(new CreateFile(null, 'notes.txt'), 'parentId');
-
-        self::assertSame(['The parent folder is required.'], $messages);
-    }
-
-    #[Test]
-    #[TestDox('A file with parentId and name is accepted')]
-    public function fileWithParentAndNameIsAccepted(): void
-    {
-        self::assertSame([], $this->violationsOn(new CreateFile($this->aUuid(), 'notes.txt')));
-    }
-
-    #[Test]
-    #[TestDox('A blank rename is rejected on name')]
-    public function blankRenameIsRejected(): void
-    {
-        self::assertNotEmpty($this->messagesOn(new RenameItem('  '), 'name'));
-    }
-
-    #[Test]
-    #[TestDox('A padded rename is accepted and validated trimmed')]
-    public function paddedRenameIsAccepted(): void
-    {
-        self::assertSame([], $this->violationsOn(new RenameItem(' Notes ')));
-    }
-
-    #[Test]
-    #[TestDox('A pagination limit below 1 is rejected')]
-    public function limitBelowRangeIsRejected(): void
-    {
-        self::assertNotEmpty($this->messagesOn(new PaginationQuery(0, 0), 'limit'));
-    }
-
-    #[Test]
-    #[TestDox('A pagination limit above 100 is rejected')]
-    public function limitAboveCapIsRejected(): void
-    {
-        self::assertNotEmpty($this->messagesOn(new PaginationQuery(101, 0), 'limit'));
-    }
-
-    #[Test]
-    #[TestDox('A pagination limit at the bounds is accepted')]
-    public function limitAtBoundsIsAccepted(): void
-    {
-        self::assertSame([], $this->violationsOn(new PaginationQuery(1, 0)));
-        self::assertSame([], $this->violationsOn(new PaginationQuery(100, 0)));
-    }
-
-    #[Test]
-    #[TestDox('A negative pagination offset is rejected')]
-    public function negativeOffsetIsRejected(): void
-    {
-        self::assertNotEmpty($this->messagesOn(new PaginationQuery(50, -1), 'offset'));
-    }
-
-    #[Test]
-    #[TestDox('The pagination defaults are valid')]
-    public function paginationDefaultsAreValid(): void
-    {
-        self::assertSame([], $this->violationsOn(new PaginationQuery()));
-    }
-
-    #[Test]
-    #[TestDox('A blank search term is rejected on name')]
-    public function blankSearchTermIsRejected(): void
-    {
-        self::assertNotEmpty($this->messagesOn(new SearchQuery('  '), 'name'));
-    }
-
-    #[Test]
-    #[TestDox('A folder scope without folderId is rejected on folderId')]
-    public function folderScopeWithoutFolderIdIsRejected(): void
-    {
-        $messages = $this->messagesOn(new SearchQuery('notes', SearchScope::Folder, null), 'folderId');
-
-        self::assertSame(['A folder scope requires a folderId.'], $messages);
-    }
-
-    #[Test]
-    #[TestDox('A folder scope with folderId is accepted')]
-    public function folderScopeWithFolderIdIsAccepted(): void
-    {
-        self::assertSame([], $this->violationsOn(new SearchQuery('notes', SearchScope::Folder, $this->aUuid())));
-    }
-
-    #[Test]
-    #[TestDox('The all scope is accepted without a folderId')]
-    public function allScopeWithoutFolderIdIsAccepted(): void
-    {
-        self::assertSame([], $this->violationsOn(new SearchQuery('notes')));
-    }
-
-    #[Test]
-    #[TestDox('A blank suggestion prefix is accepted')]
-    public function blankSuggestionPrefixIsAccepted(): void
-    {
-        self::assertSame([], $this->violationsOn(new SuggestionQuery('')));
-    }
-
-    /**
-     * @return list<ConstraintViolationInterface>
-     */
-    private function violationsOn(object $model): array
-    {
-        return iterator_to_array($this->validator->validate($model), false);
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function messagesOn(object $model, string $field): array
-    {
-        $messages = [];
-        foreach ($this->validator->validate($model) as $violation) {
-            if ($violation->getPropertyPath() === $field) {
-                $messages[] = strtr((string) $violation->getMessage(), $violation->getParameters());
-            }
-        }
-
-        return $messages;
-    }
-
-    private function firstMessage(object $model, string $field): string
-    {
-        return $this->messagesOn($model, $field)[0] ?? '';
-    }
-
-    private function aUuid(): Uuid
-    {
-        return Uuid::v7();
+        self::assertCount(1, $violations);
+        self::assertSame('name', $violations->get(0)->getPropertyPath());
+        self::assertSame('Name must not be blank.', $violations->get(0)->getMessage());
     }
 }

@@ -2,14 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Tests\Functional\Api;
+namespace App\Tests\Functional;
 
 use App\Contract\ItemServiceInterface;
 use App\DTO\Read\ItemSummary;
 use App\DTO\Write\CreateFile;
 use App\DTO\Write\CreateFolder;
 use App\Entity\Item;
-use App\Tests\Functional\FunctionalTestCase;
 use Symfony\Bundle\FrameworkBundle\KernelBrowser;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Uid\Uuid;
@@ -54,6 +53,11 @@ abstract class ApiTestCase extends FunctionalTestCase
         return Uuid::fromString(Item::ROOT_ID);
     }
 
+    protected function unknownId(): Uuid
+    {
+        return Uuid::fromString('00000000-0000-7000-8000-000000000000');
+    }
+
     protected function itemUri(Uuid $id): string
     {
         return '/api/items/'.$id->toRfc4122();
@@ -65,11 +69,6 @@ abstract class ApiTestCase extends FunctionalTestCase
     protected function request(string $method, string $uri, ?array $body = null): Response
     {
         return $this->send($method, $uri, null === $body ? null : json_encode($body, JSON_THROW_ON_ERROR));
-    }
-
-    protected function requestRaw(string $method, string $uri, string $content): Response
-    {
-        return $this->send($method, $uri, $content);
     }
 
     /**
@@ -97,6 +96,17 @@ abstract class ApiTestCase extends FunctionalTestCase
         $values = array_values($items);
 
         return $values;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    protected function stringValue(array $payload, string $key): string
+    {
+        self::assertArrayHasKey($key, $payload);
+        self::assertIsString($payload[$key]);
+
+        return $payload[$key];
     }
 
     /**
@@ -130,17 +140,6 @@ abstract class ApiTestCase extends FunctionalTestCase
         }
 
         self::fail(sprintf('No error detail for field "%s" in: %s', $field, json_encode($error)));
-    }
-
-    /**
-     * @param array{code: string, message: string, details?: list<array{field: string, message: string}>} $error
-     */
-    protected function assertDetailFields(array $error, string ...$fields): void
-    {
-        self::assertSame(
-            $fields,
-            array_map(static fn (array $detail): string => $detail['field'], $error['details'] ?? []),
-        );
     }
 
     private function send(string $method, string $uri, ?string $content): Response

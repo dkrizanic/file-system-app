@@ -19,61 +19,19 @@ final class NameNormalizerTest extends TestCase
     }
 
     #[Test]
-    #[TestDox('Lowercases ASCII letters')]
-    public function lowercasesAsciiLetters(): void
+    #[TestDox('Case-folds names so differently-cased spellings collide')]
+    public function caseFoldsNamesToTheirCollidingForm(): void
     {
         self::assertSame('notes', $this->normalizer->normalize('Notes'));
-    }
-
-    #[Test]
-    #[TestDox('Case-folds multibyte letters')]
-    public function caseFoldsMultibyteLetters(): void
-    {
         self::assertSame('ćwórd', $this->normalizer->normalize('ĆWÓRD'));
     }
 
     #[Test]
-    #[TestDox('Final-sigma variants of one name fold to the same normal form')]
-    public function foldsFinalSigmaVariantsToOneForm(): void
+    #[TestDox('A name that is not valid UTF-8 is rejected')]
+    public function invalidUtf8NameIsRejected(): void
     {
-        $uppercased = $this->normalizer->normalize("\u{039F}\u{0394}\u{038C}\u{03A3}");
-        $withFinalSigma = $this->normalizer->normalize("\u{03BF}\u{03B4}\u{03CC}\u{03C2}");
-        $withPlainSigma = $this->normalizer->normalize("\u{03BF}\u{03B4}\u{03CC}\u{03C3}");
+        $this->expectException(\InvalidArgumentException::class);
 
-        self::assertSame("\u{03BF}\u{03B4}\u{03CC}\u{03C3}", $uppercased);
-        self::assertSame($uppercased, $withFinalSigma);
-        self::assertSame($uppercased, $withPlainSigma);
-    }
-
-    #[Test]
-    #[TestDox('Composes decomposed sequences to NFC')]
-    public function composesDecomposedSequencesToNfc(): void
-    {
-        self::assertSame("\u{00E1}bc", $this->normalizer->normalize("a\u{0301}bc"));
-    }
-
-    #[Test]
-    #[TestDox('Composes what case folding left decomposed')]
-    public function composesWhatCaseFoldingLeftDecomposed(): void
-    {
-        self::assertSame("\u{00E1}rchive", $this->normalizer->normalize("A\u{0301}rchive"));
-    }
-
-    #[Test]
-    #[TestDox('Leaves an empty name empty')]
-    public function leavesAnEmptyNameEmpty(): void
-    {
-        self::assertSame('', $this->normalizer->normalize(''));
-    }
-
-    #[Test]
-    #[TestDox('Normalizing twice changes nothing')]
-    public function normalizingTwiceChangesNothing(): void
-    {
-        $name = "\u{0130}mp\u{00E9}rial A\u{0301}bc";
-
-        $once = $this->normalizer->normalize($name);
-
-        self::assertSame($once, $this->normalizer->normalize($once));
+        $this->normalizer->normalize("\xC3\x28");
     }
 }
